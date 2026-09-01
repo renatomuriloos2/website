@@ -2,7 +2,7 @@
 <title>Rethink: Sustainable Chemistry for Textiles</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Rethink makes concentrated auxiliaries, biotech, and reactive dyes that cut water, energy, and time in textile dyeing and finishing. ZDHC Level 3, ISO certified, based in Honduras.">
-<meta name="theme-color" content="#0B7E68">
+<meta name="theme-color" content="#151009">
 <meta property="og:title" content="Rethink: Sustainable Chemistry for Textiles">
 <meta property="og:description" content="Precise color. Nothing wasted. Concentrated auxiliaries, biotech, and reactive dyes for the textile industry.">
 <!-- DEPLOY STEP -->
@@ -16,17 +16,18 @@
 
 <style>
   :root{
-    --canvas:#F3F6F5;
-    --panel:#FCFDFD;
-    --ink:#0E1F1B;
-    --text-secondary:#44584F;
-    --accent:#0B7E68;
-    --accent-hover:#0A6B58;
-    --accent-muted:#BFE3DA;
-    --border:#D6E4DF;
+    --canvas:#151009;
+    --panel:#1F1811;
+    --footer-bg:#0B0805;
+    --ink:#F4EADC;
+    --text-secondary:#C7B6A0;
+    --accent:#E8792E;
+    --accent-hover:#F5924D;
+    --accent-muted:rgba(232,121,46,.22);
+    --border:rgba(244,234,220,.14);
     --ease: cubic-bezier(.22,.9,.32,1);
     --ease-out: cubic-bezier(.16,1,.3,1);
-    --tshadow: 0 1px 2px rgba(255,255,255,.9), 0 3px 14px rgba(255,255,255,.65), 0 10px 40px rgba(243,246,245,.7);
+    --tshadow: 0 1px 2px rgba(0,0,0,.85), 0 3px 14px rgba(0,0,0,.65), 0 10px 40px rgba(0,0,0,.6);
   }
 
   *{box-sizing:border-box}
@@ -48,8 +49,8 @@
   img{max-width:100%;display:block}
 
   .skip-link{
-    position:absolute;left:-9999px;top:0;background:var(--ink);color:#fff;padding:.8em 1.2em;
-    z-index:1000;border-radius:0 0 8px 0;
+    position:absolute;left:-9999px;top:0;background:var(--accent);color:#1A0F06;padding:.8em 1.2em;
+    z-index:1000;border-radius:0 0 8px 0;font-weight:600;
   }
   .skip-link:focus{left:0}
 
@@ -59,10 +60,16 @@
   .env-layer{
     position:fixed;inset:0;z-index:-1;pointer-events:none;
     background:
-      radial-gradient(ellipse 60% 40% at 15% 10%, rgba(191,227,218,.5) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 35% at 90% 80%, rgba(191,227,218,.4) 0%, transparent 60%);
+      radial-gradient(ellipse 55% 40% at 12% 8%, rgba(232,121,46,.20) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 92% 85%, rgba(232,121,46,.16) 0%, transparent 60%),
+      var(--canvas);
     animation:env-drift 70s ease-in-out infinite;
     animation-delay:-20s;
+  }
+  .env-layer::before{
+    content:"";position:absolute;inset:0;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='97' viewBox='0 0 168 97'%3E%3Cg fill='none' stroke='%23E8792E' stroke-opacity='0.16' stroke-width='1'%3E%3Cpath d='M42 0 L84 24 L84 73 L42 97 L0 73 L0 24 Z'/%3E%3Cpath d='M126 0 L168 24 L168 73 L126 97 L84 73 L84 24 Z'/%3E%3Cpath d='M0 24 L-42 0'/%3E%3C/g%3E%3C/svg%3E");
+    background-size:168px 97px;
   }
   @keyframes env-drift{
     0%,100%{ transform:translate(0,0) scale(1) }
@@ -75,10 +82,10 @@
     position:fixed;top:0;left:0;right:0;z-index:100;
     display:flex;align-items:center;justify-content:space-between;
     padding:1.1em clamp(1.2em,4vw,3em);
-    background:rgba(243,246,245,.72);backdrop-filter:blur(14px);
-    border-bottom:1px solid rgba(214,228,223,.6);
+    background:rgba(21,16,9,.72);backdrop-filter:blur(14px);
+    border-bottom:1px solid rgba(244,234,220,.1);
   }
-  .wordmark{font-family:'Sora',sans-serif;font-weight:700;font-size:1.15rem;letter-spacing:-.01em;text-decoration:none;color:var(--ink)}
+  .wordmark{font-family:'Sora',sans-serif;font-weight:700;font-size:1.3rem;letter-spacing:-.02em;text-decoration:none;color:var(--ink);text-transform:lowercase}
   .nav-links{display:flex;gap:2em;list-style:none;margin:0;padding:0;align-items:center}
   .nav-links a{text-decoration:none;font-size:.95rem;color:var(--text-secondary);transition:color .3s var(--ease)}
   .nav-links a:hover{color:var(--ink)}
@@ -117,7 +124,7 @@
   .stage.video-failed video#hero-video{display:none}
 
   .scrim{position:absolute;inset:0;pointer-events:none;
-    background:radial-gradient(ellipse 130% 95% at 50% 45%, rgba(243,246,245,0) 30%, rgba(228,236,233,.55) 100%)}
+    background:radial-gradient(ellipse 130% 95% at 50% 45%, rgba(11,8,5,0) 30%, rgba(11,8,5,.6) 100%)}
 
   .ring-wrap{position:absolute;bottom:2.2em;right:2.2em;width:48px;height:48px;color:var(--accent);z-index:5}
   .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg)}
@@ -140,7 +147,7 @@
   .band::before{
     content:"";position:absolute;inset:-6% -2%;pointer-events:none;
     opacity:calc(.35 + .65*var(--k,1));
-    background:radial-gradient(ellipse 78% 64% at 50% 50%, rgba(243,246,245,.72) 0%, rgba(243,246,245,.5) 46%, rgba(243,246,245,0) 76%);
+    background:radial-gradient(ellipse 78% 64% at 50% 50%, rgba(11,8,5,.72) 0%, rgba(11,8,5,.5) 46%, rgba(11,8,5,0) 76%);
   }
   .band h2, .band p{ position:relative; z-index:1; text-shadow:var(--tshadow) }
   .band h2{ font-size:clamp(1.7rem,4.4vw,3.4rem); line-height:1.08; max-width:14ch }
@@ -183,7 +190,7 @@
     background-size:cover;background-position:center;align-items:flex-end;
   }
   .static-hero::before{content:"";position:absolute;inset:0;
-    background:linear-gradient(180deg, rgba(243,246,245,.1) 0%, rgba(228,236,233,.85) 85%)}
+    background:linear-gradient(180deg, rgba(11,8,5,.15) 0%, rgba(11,8,5,.88) 85%)}
   .static-hero-content{position:relative;z-index:1;padding:3em 1.4em 4em;text-align:center;width:100%}
   .static-hero-content h1{font-size:clamp(1.8rem,7vw,2.6rem);text-shadow:var(--tshadow);line-height:1.12}
   .static-hero-content p{margin-top:.7em;color:var(--text-secondary);font-size:1rem;max-width:32ch;margin-inline:auto}
@@ -230,8 +237,8 @@
 
   .lab-banner{position:relative;height:280px;overflow:hidden;margin:0 0 5em}
   .lab-banner img{width:100%;height:100%;object-fit:cover}
-  .lab-banner::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(243,246,245,0) 60%, var(--canvas) 100%)}
-  .lab-banner .cap{position:absolute;left:clamp(1.4em,5vw,4em);bottom:1.2em;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--ink);background:rgba(252,253,253,.75);backdrop-filter:blur(6px);padding:.4em .8em;border-radius:8px}
+  .lab-banner::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(21,16,9,0) 60%, var(--canvas) 100%)}
+  .lab-banner .cap{position:absolute;left:clamp(1.4em,5vw,4em);bottom:1.2em;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--ink);background:rgba(11,8,5,.7);backdrop-filter:blur(6px);padding:.4em .8em;border-radius:8px}
 
   /* ---- Chemistry cards ---- */
   .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.6em;margin-top:2.4em}
@@ -241,7 +248,7 @@
     padding:2em;position:relative;overflow:hidden;
     transition:transform .35s var(--ease), box-shadow .35s var(--ease);
   }
-  .card:hover{transform:translateY(-4px);box-shadow:0 20px 44px -22px rgba(14,31,27,.22)}
+  .card:hover{transform:translateY(-4px);box-shadow:0 20px 44px -22px rgba(0,0,0,.55), 0 0 0 1px rgba(232,121,46,.15)}
   .card h3{font-size:1.3rem;margin-bottom:.6em}
   .card p{color:var(--text-secondary);line-height:1.55;margin:0}
   .card .tag{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:.08em;display:block;margin-bottom:.8em}
@@ -351,14 +358,14 @@
   .success-state p{color:var(--text-secondary);margin-top:.6em}
 
   footer{
-    background:var(--ink);color:var(--canvas);padding:3.5em clamp(1.4em,5vw,4em) 2.5em;
+    background:var(--footer-bg);color:var(--ink);padding:3.5em clamp(1.4em,5vw,4em) 2.5em;
   }
   footer .foot-grid{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;gap:2em}
-  footer a{color:var(--canvas);text-decoration:none;opacity:.85}
+  footer a{color:var(--ink);text-decoration:none;opacity:.85}
   footer a:hover{opacity:1}
-  footer .foot-brand{font-family:'Sora',sans-serif;font-weight:700;font-size:1.2rem}
+  footer .foot-brand{font-family:'Sora',sans-serif;font-weight:700;font-size:1.3rem;text-transform:lowercase;letter-spacing:-.02em}
   footer .foot-col p, footer .foot-col a{display:block;margin-top:.5em;font-size:.9rem;opacity:.75}
-  footer .disclosure{margin-top:2.5em;padding-top:1.6em;border-top:1px solid rgba(243,246,245,.15);
+  footer .disclosure{margin-top:2.5em;padding-top:1.6em;border-top:1px solid rgba(244,234,220,.12);
     font-size:.82rem;opacity:.6;max-width:1180px;margin-inline:auto}
 
   body.paused *, body.paused *::before, body.paused *::after{animation-play-state:paused !important}
@@ -483,7 +490,7 @@
   <!-- ================= PROOF ================= -->
   <section id="proof" class="proof-wrap">
     <svg class="molecule-bg" viewBox="0 0 200 200" aria-hidden="true">
-      <g fill="none" stroke="#0B7E68" stroke-width="1.5">
+      <g fill="none" stroke="#E8792E" stroke-width="1.5">
         <path d="M40 60 L80 40 L120 60 L120 100 L80 120 L40 100 Z"/>
         <path d="M120 60 L160 40 L160 80"/>
         <path d="M80 120 L80 160 L120 180"/>
