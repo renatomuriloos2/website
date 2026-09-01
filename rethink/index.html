@@ -245,6 +245,8 @@
   .card h3{font-size:1.3rem;margin-bottom:.6em}
   .card p{color:var(--text-secondary);line-height:1.55;margin:0}
   .card .tag{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:.08em;display:block;margin-bottom:.8em}
+  .sub-tags{display:flex;flex-wrap:wrap;gap:.4em;margin-top:1.2em}
+  .sub-tag{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--text-secondary);background:var(--canvas);border:1px solid var(--border);border-radius:6px;padding:.25em .55em;letter-spacing:.03em}
 
   /* ---- Proof ---- */
   .proof-wrap{position:relative}
@@ -256,7 +258,9 @@
     padding:.55em 1.1em;color:var(--ink);
   }
   .counter-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4em;margin-top:2.6em;position:relative;z-index:1}
-  @media (max-width:640px){ .counter-row{grid-template-columns:1fr} }
+  .counter-row.four{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:640px){ .counter-row, .counter-row.four{grid-template-columns:1fr 1fr} }
+  @media (max-width:400px){ .counter-row, .counter-row.four{grid-template-columns:1fr} }
   .counter{text-align:center;padding:1.6em 1em;background:var(--panel);border:1px solid var(--border);border-radius:16px}
   .counter .num{font-family:'Sora',sans-serif;font-weight:700;font-size:2.2rem;color:var(--accent)}
   .counter .lbl{color:var(--text-secondary);font-size:.9rem;margin-top:.3em}
@@ -302,6 +306,17 @@
   .why-section img{border-radius:20px;width:100%;aspect-ratio:16/10;object-fit:cover}
   .why-section p{color:var(--text-secondary);line-height:1.6;margin-top:1.2em;font-size:1.05rem}
   .why-tagline{font-family:'Sora',sans-serif;font-weight:700;font-size:1.5rem;line-height:1.25;color:var(--ink)}
+
+  /* ---- Team ---- */
+  .founder-quote{margin:2em 0 0;padding:1.8em 2em;border-left:3px solid var(--accent);background:var(--panel);border-radius:0 16px 16px 0}
+  .founder-quote p{font-family:'Sora',sans-serif;font-weight:600;font-size:1.3rem;line-height:1.35;margin:0;color:var(--ink)}
+  .founder-quote cite{display:block;margin-top:.7em;font-style:normal;color:var(--text-secondary);font-size:.92rem}
+  .team-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1em;margin-top:2.4em}
+  @media (max-width:900px){ .team-grid{grid-template-columns:repeat(3,1fr)} }
+  @media (max-width:560px){ .team-grid{grid-template-columns:repeat(2,1fr)} }
+  .team-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:1.3em 1em;text-align:center;display:flex;flex-direction:column;gap:.3em}
+  .team-card .name{font-family:'Sora',sans-serif;font-weight:600;font-size:.95rem;color:var(--ink)}
+  .team-card .role{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:.05em}
 
   /* ---- FAQ ---- */
   .faq-list{margin-top:2em;border-top:1px solid var(--border)}
@@ -359,6 +374,7 @@
     <li><a href="#proof">Proof</a></li>
     <li><a href="#lab">Lab</a></li>
     <li><a href="#why">Why</a></li>
+    <li><a href="#team">Team</a></li>
     <li class="nav-cta"><a href="#pilot" class="btn">Request a pilot</a></li>
   </ul>
 </nav>
@@ -424,18 +440,37 @@
   <!-- ================= CHEMISTRY ================= -->
   <section id="chemistry">
     <span class="kicker">The chemistry</span>
-    <h2 class="reveal">Two lines. Every fiber.</h2>
-    <p class="intro reveal">Everything we make exists to do more with less inside a dye house.</p>
+    <h2 class="reveal">Four lines. Every fiber.</h2>
+    <p class="intro reveal">Everything we make exists to do more with less inside a dye house. Every product is concentrated, so when they run together there is no need for anti-foam.</p>
     <div class="card-grid stagger">
       <div class="card reveal">
         <span class="tag">THINK²DYE</span>
         <h3>Dye, without the waste.</h3>
         <p>A complete dyeing line for natural, artificial, and synthetic fibers: concentrated auxiliaries, specialized biotech, and reactive dyes built to cut resource use.</p>
+        <div class="sub-tags">
+          <span class="sub-tag">CAT</span><span class="sub-tag">SCOUR</span><span class="sub-tag">PES</span><span class="sub-tag">GIA IV</span><span class="sub-tag">DISPERSE</span><span class="sub-tag">SINERGY</span>
+        </div>
+      </div>
+      <div class="card reveal">
+        <span class="tag">THINK²SOFT</span>
+        <h3>Soft, no matter the fiber.</h3>
+        <p>Softeners for every fiber and fabric, applied by foulard, exhaustion, or spray, built to prevent foulard stop marks, seam holes, and precipitate stains.</p>
+        <div class="sub-tags">
+          <span class="sub-tag">700</span><span class="sub-tag">PFD</span><span class="sub-tag">RG</span><span class="sub-tag">RHK</span><span class="sub-tag">SILK</span><span class="sub-tag">AA</span><span class="sub-tag">STS</span>
+        </div>
       </div>
       <div class="card reveal">
         <span class="tag">THINK²FINISH</span>
         <h3>Finish, engineered to feel.</h3>
         <p>Special finishes that change how fabric feels and performs: cool or warm touch, quick dry, wicking, soil release, water and oil repellency.</p>
+        <div class="sub-tags">
+          <span class="sub-tag">BLOCK FMA</span><span class="sub-tag">WK</span><span class="sub-tag">DTG</span><span class="sub-tag">DU</span><span class="sub-tag">GES</span><span class="sub-tag">RUBB</span><span class="sub-tag">SHIELD</span>
+        </div>
+      </div>
+      <div class="card reveal">
+        <span class="tag">THINK²WASH</span>
+        <h3>Wash, built into the line.</h3>
+        <p>The washing side of the same concentrated system, matched to THINK²DYE and THINK²SOFT so a mill runs one coherent recipe from dye bath to final rinse.</p>
       </div>
     </div>
   </section>
@@ -458,14 +493,21 @@
     <h2 class="reveal">Certified, audited, patented.</h2>
     <p class="intro reveal">Green claims are easy. These are checkable.</p>
     <div class="cert-row">
-      <span class="chip mono">ZDHC Level 3</span>
-      <span class="chip mono">ISO 9001</span>
-      <span class="chip mono">ISO 14001</span>
-      <span class="chip mono">ISO 45001</span>
+      <span class="chip mono">ZDHC MRSL V2.0 Level 3</span>
+      <span class="chip mono">ISO 9001:2015</span>
+      <span class="chip mono">ISO 14001:2015</span>
+      <span class="chip mono">ISO 45001:2018</span>
       <span class="chip mono">OEKO-TEX compliant</span>
       <span class="chip mono">California Prop 65 compliant</span>
     </div>
-    <div class="counter-row">
+    <p class="intro reveal" style="margin-top:2.4em">Our reactive dye line for cellulosic fibers, measured against conventional processing:</p>
+    <div class="counter-row four">
+      <div class="counter reveal"><div class="num">85%</div><div class="lbl">Less electrolytes</div></div>
+      <div class="counter reveal"><div class="num">42%</div><div class="lbl">Less water in washing</div></div>
+      <div class="counter reveal"><div class="num">25%</div><div class="lbl">Less energy</div></div>
+      <div class="counter reveal"><div class="num">25%</div><div class="lbl">Less process time</div></div>
+    </div>
+    <div class="counter-row" style="margin-top:1em">
       <div class="counter reveal"><div class="num">1</div><div class="lbl">Patent granted</div></div>
       <div class="counter reveal"><div class="num">2</div><div class="lbl">Patents pending</div></div>
       <div class="counter reveal"><div class="num">2</div><div class="lbl">Trade secrets</div></div>
@@ -485,16 +527,17 @@
         <img src="https://d8j0ntlcm91z4.cloudfront.net/user_3IhGndhl6WzOYGdoo2sg6dNY3HC/hf_20260831_213900_2f40647c-ed00-4e3e-8ed9-14c4e31d0149.png" alt="Rows of fabric swatches dyed in a gradient of teal shades on a laboratory counter" loading="lazy" width="1920" height="1440">
       </div>
       <div class="hold-widget reveal">
-        <p class="lede">Every product starts in our laboratory in Choloma. We match the recipe to your fabric, your machines, and your water before a single drum leaves the plant.</p>
+        <p class="lede">Every product starts in our RD&amp;I and textile application laboratories in Choloma, equipped to develop new chemistry and reproduce it reliably at scale. We match the recipe to your fabric, your machines, and your water before a single drum leaves the plant.</p>
         <button class="hold-btn" id="holdBtn" type="button" aria-describedby="holdHelp">
           <span class="fill"></span>
           <span>Hold to run the reaction</span>
         </button>
         <p id="holdHelp" style="font-size:.8rem;color:var(--text-secondary);margin-top:.6em">Press and hold. Release early and it eases back.</p>
         <div class="hold-lines">
-          <div class="line" data-line="1"><span class="dot"></span> Less water.</div>
-          <div class="line" data-line="2"><span class="dot"></span> Less energy.</div>
-          <div class="line" data-line="3"><span class="dot"></span> Less time.</div>
+          <div class="line" data-line="1"><span class="dot"></span> 85% less electrolytes.</div>
+          <div class="line" data-line="2"><span class="dot"></span> 42% less water.</div>
+          <div class="line" data-line="3"><span class="dot"></span> 25% less energy.</div>
+          <div class="line" data-line="4"><span class="dot"></span> 25% less time.</div>
         </div>
       </div>
     </div>
@@ -512,7 +555,29 @@
         <span class="kicker">Why we exist</span>
         <p class="why-tagline">Together we can make a better world for a future generation.</p>
         <p>Textile production is one of the world's largest users of water. We exist to change what that costs: processes and chemicals that preserve natural resources and improve life for the people who depend on this industry.</p>
+        <p>To transform the world, we need to be surrounded by the right people. With an open mind and an innovative attitude, we can break every paradigm the industry has settled for.</p>
       </div>
+    </div>
+  </section>
+
+  <div class="divider reveal" aria-hidden="true">
+    <svg viewBox="0 0 340 24"><path d="M0 12 H150"/><circle cx="170" cy="12" r="5"/><path d="M190 12 H340"/></svg>
+  </div>
+
+  <!-- ================= TEAM ================= -->
+  <section id="team">
+    <span class="kicker">Who's behind it</span>
+    <h2 class="reveal">Five people who decided to change how textile gets made.</h2>
+    <blockquote class="founder-quote reveal">
+      <p>"Fraternity is the apex of human evolution."</p>
+      <cite>Alexandre Aragão, CRO &amp; Founder</cite>
+    </blockquote>
+    <div class="team-grid stagger">
+      <div class="team-card reveal"><span class="name">Alexandre Aragão</span><span class="role">CRO &amp; Founder</span></div>
+      <div class="team-card reveal"><span class="name">Renato Guimarães</span><span class="role">CEO</span></div>
+      <div class="team-card reveal"><span class="name">Jefferson Aragão</span><span class="role">CTO</span></div>
+      <div class="team-card reveal"><span class="name">Douglas Aragão</span><span class="role">COO</span></div>
+      <div class="team-card reveal"><span class="name">Massaru Aragão</span><span class="role">CCO</span></div>
     </div>
   </section>
 
@@ -534,11 +599,11 @@
       </details>
       <details class="faq-item reveal">
         <summary class="faq-q">How do we know the sustainability claims are real? <span class="plus">+</span></summary>
-        <div class="faq-a">You check them. ZDHC Level 3, ISO 14001, OEKO-TEX and California Prop 65 compliance are third-party verified, and we share the documentation during your pilot.</div>
+        <div class="faq-a">You check them. ZDHC MRSL V2.0 Level 3, ISO 9001, ISO 14001, ISO 45001, OEKO-TEX, and California Prop 65 compliance are third-party verified, and we share the documentation during your pilot.</div>
       </details>
       <details class="faq-item reveal">
         <summary class="faq-q">Where are you? <span class="plus">+</span></summary>
-        <div class="faq-a">Our plant and laboratory are in ZIP Choloma, Cortés, Honduras, in the heart of Central America's textile corridor.</div>
+        <div class="faq-a">Our plant and laboratory are in Zona Libre ZipTex, Choloma, Cortés, Honduras, in the heart of Central America's textile corridor.</div>
       </details>
     </div>
   </section>
@@ -583,11 +648,12 @@
   <div class="foot-grid">
     <div class="foot-col">
       <div class="foot-brand">RETHINK</div>
-      <p>Rethink S.A. de C.V.</p>
-      <p>ZIP Choloma, Carretera a Puerto Cortés,<br>Choloma, Cortés, Honduras</p>
+      <p>Rethink S.A.</p>
+      <p>Carretera a Puerto Cortés, Costado Nor-Oeste<br>de Zip-Choloma, Zona Libre ZipTex, Nave L4A,<br>Choloma, Cortés, Honduras, C.A.</p>
     </div>
     <div class="foot-col">
       <a href="mailto:rethink@rethink.hn">rethink@rethink.hn</a>
+      <a href="mailto:administracion@rethink.hn">administracion@rethink.hn</a>
       <a href="tel:+50426177772">(+504) 2617-7772</a>
       <a href="#pilot">Request a pilot</a>
     </div>
