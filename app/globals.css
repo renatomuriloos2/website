@@ -4,16 +4,31 @@
 
 :root {
   --font-poppins: "Poppins", sans-serif;
+
+  /* Theme tokens: dark is the default. `--surface` is the overlay color
+     used to raise cards/borders/fields off the page background, so it
+     flips (white on dark bg, black on light bg) while the page/text
+     tokens flip the other way. */
+  --page-bg-rgb: 23 16 11;
+  --rethink-cream-rgb: 255 252 224;
+  --surface-rgb: 255 255 255;
+}
+
+[data-theme="light"] {
+  --page-bg-rgb: 255 252 224;
+  --rethink-cream-rgb: 23 16 11;
+  --surface-rgb: 0 0 0;
 }
 
 body {
-  background-color: #17100b;
-  color: #fffce0;
+  background-color: rgb(var(--page-bg-rgb));
+  color: rgb(var(--rethink-cream-rgb));
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 @layer components {
   .card {
-    @apply rounded-xl border border-white/10 bg-white/5 p-4 shadow-sm;
+    @apply rounded-xl border border-surface/10 bg-surface/5 p-4 shadow-sm;
   }
 
   .btn-primary {
@@ -21,11 +36,11 @@ body {
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-lg border border-white/20 px-4 py-2 text-sm font-medium text-rethink-cream transition hover:bg-white/10;
+    @apply inline-flex items-center justify-center rounded-lg border border-surface/20 px-4 py-2 text-sm font-medium text-rethink-cream transition hover:bg-surface/10;
   }
 
   .input {
-    @apply w-full rounded-lg border border-white/15 bg-black/20 px-3 py-2 text-sm text-rethink-cream placeholder:text-rethink-cream/30 focus:border-rethink-orange focus:outline-none;
+    @apply w-full rounded-lg border border-surface/15 bg-surface/10 px-3 py-2 text-sm text-rethink-cream placeholder:text-rethink-cream/30 focus:border-rethink-orange focus:outline-none;
   }
 
   .label {

@@ -131,6 +131,20 @@ versión blanca para fondos oscuros) vive en `public/brand/rethink-logo-wordmark
 y se usa desde `components/Logo.tsx`. El isotipo suelto está en
 `public/brand/rethink-icon-puntos.png` por si se necesita en algún lugar sin el wordmark.
 
+La app tiene un selector de tema claro/oscuro ("Cambiar apariencia", en la barra lateral)
+implementado con variables CSS en `app/globals.css` — el sidebar y el logo se mantienen
+siempre oscuros (el wordmark es blanco y necesita fondo oscuro), mientras el resto de la
+app cambia. La preferencia se guarda por navegador.
+
+## Datos de demostración
+
+Desde **Panel de administrador → Datos de demostración** puedes crear 3 clientes de
+ejemplo (`[Demo] Textilera Elcatex`, `[Demo] Hotel Las Brisas`, `[Demo] Planta San Rafael`)
+con rangos, visitas, lecturas y dosificación reales en tu base de datos — útil para
+explorar la app o hacer una demo sin usar datos de clientes reales. Se identifican por el
+prefijo `[Demo]` y se pueden borrar con el botón de al lado en cualquier momento, sin
+afectar otros clientes.
+
 ## Notas de producción
 
 - El proyecto usa Next.js 14.2.35 (el último parche disponible en la serie 14.x). Antes de

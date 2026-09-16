@@ -2,6 +2,7 @@ import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NavLink } from "@/components/NavLink";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export interface NavItem {
   href: string;
@@ -20,21 +21,29 @@ export function Shell({
   return (
     <div className="flex min-h-screen flex-col">
       <div className="flex flex-1">
-        <aside className="hidden w-60 shrink-0 flex-col border-r border-white/10 bg-black/20 p-4 sm:flex">
+        <aside
+          data-theme="dark"
+          className="hidden w-60 shrink-0 flex-col border-r border-white/10 bg-black/20 p-4 sm:flex"
+        >
           <Logo className="mb-8 px-2" />
-          <nav className="flex flex-col gap-1">
+          <nav className="flex flex-1 flex-col gap-1">
             {navItems.map((item) => (
               <NavLink key={item.href} href={item.href}>
                 {item.label}
               </NavLink>
             ))}
           </nav>
+          <ThemeToggle fullWidth />
         </aside>
         <div className="flex flex-1 flex-col">
-          <header className="flex items-center justify-between border-b border-white/10 px-6 py-3 sm:hidden">
+          <header
+            data-theme="dark"
+            className="flex items-center justify-between border-b border-white/10 px-6 py-3 sm:hidden"
+          >
             <Logo />
+            <ThemeToggle />
           </header>
-          <header className="flex items-center justify-end gap-3 border-b border-white/10 px-6 py-3">
+          <header className="flex items-center justify-end gap-3 border-b border-surface/10 px-6 py-3">
             {userEmail && (
               <span className="text-xs text-rethink-cream/60">{userEmail}</span>
             )}

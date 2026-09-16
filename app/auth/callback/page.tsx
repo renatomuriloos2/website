@@ -90,7 +90,7 @@ export default function AuthCallbackPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div data-theme="dark" className="flex min-h-screen flex-col bg-rethink-bg">
       <div className="flex flex-1 items-center justify-center px-4">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex justify-center">
