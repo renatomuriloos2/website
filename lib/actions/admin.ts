@@ -1,0 +1,215 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { requireAppUser } from "@/lib/auth";
+import { DEFAULT_PARAMETERS, SYSTEMS } from "@/lib/constants";
+import { revalidatePath } from "next/cache";
+import { SystemType } from "@/types/database";
+
+function slugify(label: string): string {
+  return label
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+export async function createClientAction(formData: FormData) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const name = String(formData.get("name") ?? "").trim();
+  const location = String(formData.get("location") ?? "").trim() || null;
+  if (!name) throw new Error("El nombre es obligatorio.");
+
+  const { data: client, error } = await supabase
+    .from("clients")
+    .insert({ name, location })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  const rangeRows = SYSTEMS.flatMap((system) =>
+    DEFAULT_PARAMETERS[system].map((p) => ({
+      client_id: client.id,
+      system,
+      param_key: p.param_key,
+      label: p.label,
+      unit: p.unit,
+      min_value: null,
+      max_value: null,
+    }))
+  );
+
+  await supabase.from("parameter_ranges").insert(rangeRows);
+
+  revalidatePath("/admin/clientes");
+  revalidatePath("/admin/rangos");
+}
+
+export async function updateClientAction(id: string, formData: FormData) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const name = String(formData.get("name") ?? "").trim();
+  const location = String(formData.get("location") ?? "").trim() || null;
+  if (!name) throw new Error("El nombre es obligatorio.");
+
+  const { error } = await supabase.from("clients").update({ name, location }).eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/clientes");
+}
+
+export async function deleteClientAction(id: string) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const { error } = await supabase.from("clients").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/clientes");
+  revalidatePath("/admin/rangos");
+}
+
+export async function linkUserAction(formData: FormData) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const id = String(formData.get("id") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const clientId = String(formData.get("client_id") ?? "").trim();
+
+  if (!id || !email || !clientId) throw new Error("Faltan datos para vincular el usuario.");
+
+  const { error } = await supabase
+    .from("users")
+    .upsert({ id, email, role: "client", client_id: clientId });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/clientes");
+}
+
+export async function unlinkUserAction(id: string) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const { error } = await supabase.from("users").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/clientes");
+}
+
+export async function upsertRangeAction(formData: FormData) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const id = String(formData.get("id") ?? "").trim() || null;
+  const clientId = String(formData.get("client_id") ?? "").trim();
+  const system = String(formData.get("system") ?? "").trim() as SystemType;
+  const label = String(formData.get("label") ?? "").trim();
+  const unit = String(formData.get("unit") ?? "").trim() || null;
+  const minRaw = String(formData.get("min_value") ?? "").trim();
+  const maxRaw = String(formData.get("max_value") ?? "").trim();
+  const min_value = minRaw === "" ? null : Number(minRaw);
+  const max_value = maxRaw === "" ? null : Number(maxRaw);
+
+  if (!clientId || !system || !label) throw new Error("Faltan datos del parámetro.");
+
+  if (id) {
+    const { error } = await supabase
+      .from("parameter_ranges")
+      .update({ label, unit, min_value, max_value, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+  } else {
+    const param_key = slugify(label);
+    const { error } = await supabase
+      .from("parameter_ranges")
+      .insert({ client_id: clientId, system, param_key, label, unit, min_value, max_value });
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath("/admin/rangos");
+}
+
+export async function deleteRangeAction(id: string) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const { error } = await supabase.from("parameter_ranges").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/rangos");
+}
+
+export interface VisitReadingInput {
+  param_key: string;
+  value: number;
+}
+
+export interface VisitDosingInput {
+  product: string;
+  dose: number | null;
+  unit: string | null;
+  notes: string | null;
+}
+
+export async function createVisitAction(formData: FormData) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const client_id = String(formData.get("client_id") ?? "").trim();
+  const system = String(formData.get("system") ?? "").trim() as SystemType;
+  const visit_date = String(formData.get("visit_date") ?? "").trim();
+  const technician = String(formData.get("technician") ?? "").trim() || null;
+  const recommendation = String(formData.get("recommendation") ?? "").trim() || null;
+  const priority = String(formData.get("priority") ?? "normal").trim();
+  const next_visit_date = String(formData.get("next_visit_date") ?? "").trim() || null;
+  const readings = JSON.parse(String(formData.get("readings") ?? "[]")) as VisitReadingInput[];
+  const dosing = JSON.parse(String(formData.get("dosing") ?? "[]")) as VisitDosingInput[];
+
+  if (!client_id || !system || !visit_date) throw new Error("Faltan datos obligatorios de la visita.");
+
+  const { data: visit, error } = await supabase
+    .from("visits")
+    .insert({
+      client_id,
+      system,
+      visit_date,
+      technician,
+      recommendation,
+      priority,
+      next_visit_date,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  const validReadings = readings.filter((r) => r.param_key && !Number.isNaN(r.value));
+  if (validReadings.length > 0) {
+    await supabase
+      .from("visit_readings")
+      .insert(validReadings.map((r) => ({ visit_id: visit.id, param_key: r.param_key, value: r.value })));
+  }
+
+  const validDosing = dosing.filter((d) => d.product);
+  if (validDosing.length > 0) {
+    await supabase.from("visit_dosing").insert(
+      validDosing.map((d) => ({
+        visit_id: visit.id,
+        product: d.product,
+        dose: d.dose,
+        unit: d.unit,
+        notes: d.notes,
+      }))
+    );
+  }
+
+  revalidatePath("/portal");
+  revalidatePath("/admin");
+}

@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-poppins: "Poppins", sans-serif;
+}
+
+body {
+  background-color: #17100b;
+  color: #fffce0;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-white/10 bg-white/5 p-4 shadow-sm;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-rethink-orange px-4 py-2 text-sm font-medium text-rethink-bg transition hover:bg-rethink-amber disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg border border-white/20 px-4 py-2 text-sm font-medium text-rethink-cream transition hover:bg-white/10;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-white/15 bg-black/20 px-3 py-2 text-sm text-rethink-cream placeholder:text-rethink-cream/30 focus:border-rethink-orange focus:outline-none;
+  }
+
+  .label {
+    @apply mb-1 block text-xs font-medium text-rethink-cream/70;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+}

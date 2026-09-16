@@ -1,0 +1,49 @@
+import { Logo } from "@/components/Logo";
+import { Footer } from "@/components/Footer";
+import { LogoutButton } from "@/components/LogoutButton";
+import { NavLink } from "@/components/NavLink";
+
+export interface NavItem {
+  href: string;
+  label: string;
+}
+
+export function Shell({
+  navItems,
+  userEmail,
+  children,
+}: {
+  navItems: NavItem[];
+  userEmail?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <div className="flex flex-1">
+        <aside className="hidden w-60 shrink-0 flex-col border-r border-white/10 bg-black/20 p-4 sm:flex">
+          <Logo className="mb-8 px-2" />
+          <nav className="flex flex-col gap-1">
+            {navItems.map((item) => (
+              <NavLink key={item.href} href={item.href}>
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </aside>
+        <div className="flex flex-1 flex-col">
+          <header className="flex items-center justify-between border-b border-white/10 px-6 py-3 sm:hidden">
+            <Logo />
+          </header>
+          <header className="flex items-center justify-end gap-3 border-b border-white/10 px-6 py-3">
+            {userEmail && (
+              <span className="text-xs text-rethink-cream/60">{userEmail}</span>
+            )}
+            <LogoutButton />
+          </header>
+          <main className="flex-1 p-6">{children}</main>
+        </div>
+      </div>
+      <Footer />
+    </div>
+  );
+}
