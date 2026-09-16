@@ -105,9 +105,10 @@ middleware.ts             Protege rutas por sesión y por rol (admin/client)
 ## Marca
 
 Colores, tipografía (Poppins) y el pie de página "Chemistry by Design" están aplicados
-según la guía de marca del brief. El isotipo de círculos + wordmark en `components/Logo.tsx`
-es un placeholder: reemplázalo por el archivo oficial de Rethink cuando esté disponible
-(versión blanca para fondos oscuros).
+según la guía de marca del brief. El logo oficial de Rethink (isotipo de círculos + wordmark,
+versión blanca para fondos oscuros) vive en `public/brand/rethink-logo-wordmark-blanco.png`
+y se usa desde `components/Logo.tsx`. El isotipo suelto está en
+`public/brand/rethink-icon-puntos.png` por si se necesita en algún lugar sin el wordmark.
 
 ## Notas de producción
 
