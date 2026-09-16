@@ -74,6 +74,27 @@ Abre [http://localhost:3000](http://localhost:3000).
    Rethink. Una vez propagados, el portal queda disponible en ese dominio con HTTPS
    automático.
 
+## 8. Configurar los correos de Supabase (Site URL)
+
+Por defecto, Supabase manda los links de sus correos (invitación, recuperación de
+contraseña) al `Site URL` configurado en el proyecto, que empieza en
+`http://localhost:3000`. Si no lo cambias, esos links llevan a la máquina de quien los
+generó en vez de al sitio real. Para arreglarlo:
+
+1. En Supabase, ve a **Authentication → URL Configuration**.
+2. Cambia **Site URL** a tu dominio real (el de Vercel o el propio una vez conectado),
+   por ejemplo `https://website-lime-one-96.vercel.app`.
+3. En **Redirect URLs**, agrega ese mismo dominio (puedes usar `https://tu-dominio/**`
+   para cubrir todas las rutas) y, si quieres seguir probando en local,
+   `http://localhost:3000/**`.
+4. Guarda. Los próximos correos de invitación/recuperación ya apuntarán al sitio
+   correcto, y `app/auth/callback` recibe esos links, valida el token y deja al usuario
+   crear su contraseña.
+
+Si ya generaste un link de recuperación antes de este cambio, ese link específico sigue
+apuntando a localhost — vuelve a mandarlo (**Send password recovery** desde
+Authentication → Users) después de configurar el Site URL.
+
 ## Estructura del proyecto
 
 ```
