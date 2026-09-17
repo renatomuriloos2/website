@@ -34,9 +34,15 @@ create table if not exists visits (
   system text not null check (system in ('Calderas', 'Enfriamiento', 'Vapor', 'PTAR')),
   visit_date date not null default current_date,
   technician text,
+  -- Cuenta (rol tecnico) a notificar por correo cuando se acerque next_visit_date.
+  -- Independiente del campo `technician` de arriba, que sigue siendo texto libre.
+  technician_id uuid references users(id) on delete set null,
   recommendation text,
   priority text not null default 'normal' check (priority in ('normal', 'atencion', 'urgente')),
   next_visit_date date,
+  -- Se marca cuando el cron de recordatorios ya avisó de esta next_visit_date,
+  -- para no mandar el correo más de una vez.
+  reminder_sent_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -344,6 +350,16 @@ create policy "dosing admin delete" on visit_dosing
 -- visit_readings / visit_dosing (cada policy hace "drop ... if exists"
 -- antes de "create", así que repetirlas es seguro) para que queden
 -- usando is_client_of(...) en vez de auth_client_id().
+-- ============================================================
+
+-- ============================================================
+-- MIGRACIÓN: recordatorio por correo de la próxima visita
+-- (si ya corriste este schema.sql antes de que existieran estas columnas,
+-- ejecuta esto una sola vez; en un proyecto nuevo no hace falta, ya está
+-- arriba en el create table de visits)
+-- ============================================================
+-- alter table visits add column if not exists technician_id uuid references users(id) on delete set null;
+-- alter table visits add column if not exists reminder_sent_at timestamptz;
 -- ============================================================
 
 -- ============================================================

@@ -69,6 +69,11 @@ export async function getUserCountsByClient(supabase: SupabaseClient): Promise<M
   return counts;
 }
 
+export async function getTecnicoUsers(supabase: SupabaseClient): Promise<{ id: string; email: string }[]> {
+  const { data } = await supabase.from("users").select("id, email").eq("role", "tecnico").order("email");
+  return data ?? [];
+}
+
 export async function getLinkedUsersForClient(
   supabase: SupabaseClient,
   clientId: string

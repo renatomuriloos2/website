@@ -7,7 +7,9 @@ interface CookieToSet {
   options: CookieOptions;
 }
 
-const PUBLIC_PATHS = ["/login", "/auth"];
+// /api/cron/* no usa sesión de Supabase — Vercel Cron lo llama sin cookies,
+// y la ruta valida su propio Authorization: Bearer CRON_SECRET.
+const PUBLIC_PATHS = ["/login", "/auth", "/api/cron"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });

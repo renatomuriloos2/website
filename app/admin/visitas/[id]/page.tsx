@@ -1,12 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
-import { getVisitWithDetails } from "@/lib/admin-data";
+import { getVisitWithDetails, getTecnicoUsers } from "@/lib/admin-data";
 import { EditVisitForm } from "@/components/EditVisitForm";
 import { notFound } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 
 export default async function EditVisitaPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const visit = await getVisitWithDetails(supabase, params.id);
+  const [visit, tecnicos] = await Promise.all([
+    getVisitWithDetails(supabase, params.id),
+    getTecnicoUsers(supabase),
+  ]);
 
   if (!visit) notFound();
 
@@ -20,7 +23,7 @@ export default async function EditVisitaPage({ params }: { params: { id: string 
       </p>
 
       <div className="card mb-6">
-        <EditVisitForm visit={visit} />
+        <EditVisitForm visit={visit} tecnicos={tecnicos} />
       </div>
 
       <p className="mb-3 text-xs text-rethink-cream/50">

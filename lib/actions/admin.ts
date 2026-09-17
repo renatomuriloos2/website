@@ -300,6 +300,7 @@ export async function createVisitAction(
     const system = String(formData.get("system") ?? "").trim() as SystemType;
     const visit_date = String(formData.get("visit_date") ?? "").trim();
     const technician = String(formData.get("technician") ?? "").trim() || null;
+    const technician_id = String(formData.get("technician_id") ?? "").trim() || null;
     const recommendation = String(formData.get("recommendation") ?? "").trim() || null;
     const priority = String(formData.get("priority") ?? "normal").trim();
     const next_visit_date = String(formData.get("next_visit_date") ?? "").trim() || null;
@@ -317,6 +318,7 @@ export async function createVisitAction(
         system,
         visit_date,
         technician,
+        technician_id,
         recommendation,
         priority,
         next_visit_date,
@@ -370,6 +372,7 @@ export async function updateVisitAction(
 
     const visit_date = String(formData.get("visit_date") ?? "").trim();
     const technician = String(formData.get("technician") ?? "").trim() || null;
+    const technician_id = String(formData.get("technician_id") ?? "").trim() || null;
     const recommendation = String(formData.get("recommendation") ?? "").trim() || null;
     const priority = String(formData.get("priority") ?? "normal").trim();
     const next_visit_date = String(formData.get("next_visit_date") ?? "").trim() || null;
@@ -378,7 +381,16 @@ export async function updateVisitAction(
 
     const { error } = await supabase
       .from("visits")
-      .update({ visit_date, technician, recommendation, priority, next_visit_date })
+      .update({
+        visit_date,
+        technician,
+        technician_id,
+        recommendation,
+        priority,
+        next_visit_date,
+        // La fecha pudo cambiar: deja que el cron vuelva a evaluar si avisar.
+        reminder_sent_at: null,
+      })
       .eq("id", id);
 
     if (error) return { error: error.message };

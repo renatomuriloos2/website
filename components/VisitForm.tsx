@@ -31,9 +31,11 @@ function SubmitButton() {
 export function VisitForm({
   clients,
   allRanges,
+  tecnicos,
 }: {
   clients: Client[];
   allRanges: ParameterRange[];
+  tecnicos: { id: string; email: string }[];
 }) {
   const [state, formAction] = useFormState(createVisitAction, initialState);
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
@@ -147,6 +149,20 @@ export function VisitForm({
         <div>
           <label className="label">Técnico</label>
           <input name="technician" className="input" />
+        </div>
+        <div>
+          <label className="label">Notificar a técnico (opcional)</label>
+          <select name="technician_id" className="input" defaultValue="">
+            <option value="">— Sin notificación —</option>
+            {tecnicos.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.email}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-rethink-cream/40">
+            Le llega un correo recordatorio la semana de la próxima visita.
+          </p>
         </div>
         <div>
           <label className="label">Próxima visita</label>

@@ -29,7 +29,13 @@ function DeleteButton({ formAction }: { formAction: (formData: FormData) => void
   );
 }
 
-export function EditVisitForm({ visit }: { visit: Visit }) {
+export function EditVisitForm({
+  visit,
+  tecnicos,
+}: {
+  visit: Visit;
+  tecnicos: { id: string; email: string }[];
+}) {
   const [saveState, saveAction] = useFormState(updateVisitAction.bind(null, visit.id), initialState);
   const [deleteState, deleteAction] = useFormState(deleteVisitAction.bind(null, visit.id), initialState);
 
@@ -42,6 +48,20 @@ export function EditVisitForm({ visit }: { visit: Visit }) {
       <div>
         <label className="label">Técnico</label>
         <input name="technician" defaultValue={visit.technician ?? ""} className="input" />
+      </div>
+      <div>
+        <label className="label">Notificar a técnico (opcional)</label>
+        <select name="technician_id" className="input" defaultValue={visit.technician_id ?? ""}>
+          <option value="">— Sin notificación —</option>
+          {tecnicos.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.email}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-rethink-cream/40">
+          Le llega un correo recordatorio la semana de la próxima visita.
+        </p>
       </div>
       <div>
         <label className="label">Próxima visita</label>

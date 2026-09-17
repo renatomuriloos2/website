@@ -30,9 +30,11 @@ export interface Visit {
   system: SystemType;
   visit_date: string;
   technician: string | null;
+  technician_id: string | null;
   recommendation: string | null;
   priority: Priority;
   next_visit_date: string | null;
+  reminder_sent_at: string | null;
   created_at: string;
 }
 
