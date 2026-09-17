@@ -17,9 +17,19 @@ export function ClientSystemSwitcher({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const currentClient = clients.find((c) => c.id === currentClientId);
+  const availableSystems = currentClient?.active_systems?.length
+    ? currentClient.active_systems
+    : SYSTEMS;
+
   function update(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set(key, value);
+    if (key === "client_id") {
+      const nextClient = clients.find((c) => c.id === value);
+      const nextSystems = nextClient?.active_systems?.length ? nextClient.active_systems : SYSTEMS;
+      params.set("system", nextSystems[0]);
+    }
     router.push(`${pathname}?${params.toString()}`);
   }
 
@@ -42,7 +52,7 @@ export function ClientSystemSwitcher({
       <div>
         <label className="label">Sistema</label>
         <select className="input" value={currentSystem} onChange={(e) => update("system", e.target.value)}>
-          {SYSTEMS.map((s) => (
+          {availableSystems.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>

@@ -5,6 +5,8 @@ import {
   unlinkUserAction,
   sendPasswordResetAction,
 } from "@/lib/actions/admin";
+import { SystemCheckboxes } from "@/components/SystemCheckboxes";
+import { SYSTEMS } from "@/lib/constants";
 import { notFound } from "next/navigation";
 import { Client, AppUser } from "@/types/database";
 
@@ -60,6 +62,9 @@ export default async function EditClientPage({
               className="input"
             />
           </div>
+          <SystemCheckboxes
+            selected={client.active_systems?.length ? client.active_systems : SYSTEMS}
+          />
           <button type="submit" className="btn-primary self-start">
             Guardar cambios
           </button>
@@ -67,11 +72,12 @@ export default async function EditClientPage({
       </div>
 
       <div className="card">
-        <h3 className="mb-4 text-sm font-medium text-rethink-cream">Cuentas de cliente vinculadas</h3>
-        <p className="mb-4 text-xs text-rethink-cream/50">
-          Primero crea la cuenta en Supabase → Authentication → Users, copia su UUID y vincúlala
-          aquí para que quede scoped a este cliente.
-        </p>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h3 className="text-sm font-medium text-rethink-cream">Cuentas de cliente vinculadas</h3>
+          <a href={`/admin/usuarios?client_id=${client.id}`} className="btn-secondary text-xs">
+            Crear cuenta para este cliente
+          </a>
+        </div>
 
         {(linkedUsers as AppUser[] | null)?.length ? (
           <ul className="mb-4 flex flex-col gap-2">
@@ -99,6 +105,9 @@ export default async function EditClientPage({
           <p className="mb-4 text-sm text-rethink-cream/50">Sin cuentas vinculadas todavía.</p>
         )}
 
+        <p className="mb-2 text-xs text-rethink-cream/50">
+          ¿Ya existe la cuenta (creada aquí o en Supabase)? Vincúlala manualmente por UUID:
+        </p>
         <form action={linkUserAction} className="flex flex-col gap-3">
           <input type="hidden" name="client_id" value={client.id} />
           <div>

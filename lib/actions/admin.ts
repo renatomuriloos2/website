@@ -17,25 +17,16 @@ function slugify(label: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
-export async function createClientAction(formData: FormData) {
-  await requireAppUser("admin");
-  const supabase = createClient();
+function parseSystems(formData: FormData): SystemType[] {
+  const selected = formData.getAll("systems").map(String) as SystemType[];
+  const valid = selected.filter((s) => SYSTEMS.includes(s));
+  return valid.length > 0 ? valid : SYSTEMS;
+}
 
-  const name = String(formData.get("name") ?? "").trim();
-  const location = String(formData.get("location") ?? "").trim() || null;
-  if (!name) throw new Error("El nombre es obligatorio.");
-
-  const { data: client, error } = await supabase
-    .from("clients")
-    .insert({ name, location })
-    .select()
-    .single();
-
-  if (error) throw new Error(error.message);
-
-  const rangeRows = SYSTEMS.flatMap((system) =>
+function defaultRangeRows(clientId: string, systems: SystemType[]) {
+  return systems.flatMap((system) =>
     DEFAULT_PARAMETERS[system].map((p) => ({
-      client_id: client.id,
+      client_id: clientId,
       system,
       param_key: p.param_key,
       label: p.label,
@@ -44,8 +35,27 @@ export async function createClientAction(formData: FormData) {
       max_value: null,
     }))
   );
+}
 
-  await supabase.from("parameter_ranges").insert(rangeRows);
+export async function createClientAction(formData: FormData) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const name = String(formData.get("name") ?? "").trim();
+  const location = String(formData.get("location") ?? "").trim() || null;
+  if (!name) throw new Error("El nombre es obligatorio.");
+
+  const systems = parseSystems(formData);
+
+  const { data: client, error } = await supabase
+    .from("clients")
+    .insert({ name, location, active_systems: systems })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  await supabase.from("parameter_ranges").insert(defaultRangeRows(client.id, systems));
 
   revalidatePath("/admin/clientes");
   revalidatePath("/admin/rangos");
@@ -59,10 +69,28 @@ export async function updateClientAction(id: string, formData: FormData) {
   const location = String(formData.get("location") ?? "").trim() || null;
   if (!name) throw new Error("El nombre es obligatorio.");
 
-  const { error } = await supabase.from("clients").update({ name, location }).eq("id", id);
+  const systems = parseSystems(formData);
+
+  const { data: existingRanges } = await supabase
+    .from("parameter_ranges")
+    .select("system")
+    .eq("client_id", id);
+  const systemsWithRanges = new Set((existingRanges ?? []).map((r) => r.system));
+  const newlyEnabled = systems.filter((s) => !systemsWithRanges.has(s));
+
+  const { error } = await supabase
+    .from("clients")
+    .update({ name, location, active_systems: systems })
+    .eq("id", id);
   if (error) throw new Error(error.message);
 
+  if (newlyEnabled.length > 0) {
+    await supabase.from("parameter_ranges").insert(defaultRangeRows(id, newlyEnabled));
+  }
+
   revalidatePath("/admin/clientes");
+  revalidatePath("/admin/rangos");
+  revalidatePath("/admin/portal");
 }
 
 export async function deleteClientAction(id: string) {

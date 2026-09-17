@@ -12,6 +12,10 @@ interface DosingRow {
   notes: string;
 }
 
+function systemsFor(client: Client | undefined): SystemType[] {
+  return client?.active_systems?.length ? client.active_systems : SYSTEMS;
+}
+
 export function VisitForm({
   clients,
   allRanges,
@@ -20,7 +24,16 @@ export function VisitForm({
   allRanges: ParameterRange[];
 }) {
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
-  const [system, setSystem] = useState<SystemType>(SYSTEMS[0]);
+  const [system, setSystem] = useState<SystemType>(systemsFor(clients[0])[0] ?? SYSTEMS[0]);
+
+  const currentClient = clients.find((c) => c.id === clientId);
+  const availableSystems = systemsFor(currentClient);
+
+  function handleClientChange(newClientId: string) {
+    setClientId(newClientId);
+    const nextClient = clients.find((c) => c.id === newClientId);
+    setSystem(systemsFor(nextClient)[0] ?? SYSTEMS[0]);
+  }
   const [readingValues, setReadingValues] = useState<Record<string, string>>({});
   const [dosingRows, setDosingRows] = useState<DosingRow[]>([
     { product: "", dose: "", unit: "", notes: "" },
@@ -84,7 +97,7 @@ export function VisitForm({
             name="client_id"
             className="input"
             value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
+            onChange={(e) => handleClientChange(e.target.value)}
           >
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -101,7 +114,7 @@ export function VisitForm({
             value={system}
             onChange={(e) => setSystem(e.target.value as SystemType)}
           >
-            {SYSTEMS.map((s) => (
+            {availableSystems.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>

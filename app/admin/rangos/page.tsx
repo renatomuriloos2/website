@@ -25,7 +25,11 @@ export default async function RangosPage({
   }
 
   const clientId = searchParams.client_id ?? clients[0].id;
-  const system = (searchParams.system as SystemType) ?? SYSTEMS[0];
+  const selectedClient = clients.find((c) => c.id === clientId);
+  const clientSystems = selectedClient?.active_systems?.length
+    ? selectedClient.active_systems
+    : SYSTEMS;
+  const system = (searchParams.system as SystemType) ?? clientSystems[0];
 
   const { data: ranges } = await supabase
     .from("parameter_ranges")

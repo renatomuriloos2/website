@@ -16,6 +16,33 @@ export async function getAllAppUsers(supabase: SupabaseClient): Promise<AppUser[
   return (data ?? []) as AppUser[];
 }
 
+export interface AppUserWithClient extends AppUser {
+  clients: { name: string } | null;
+}
+
+export async function getAllAppUsersWithClients(
+  supabase: SupabaseClient
+): Promise<AppUserWithClient[]> {
+  const { data } = await supabase
+    .from("users")
+    .select("id, email, role, client_id, clients(name)")
+    .order("email")
+    .returns<AppUserWithClient[]>();
+  return data ?? [];
+}
+
+export async function getAppUserById(
+  supabase: SupabaseClient,
+  id: string
+): Promise<AppUserWithClient | null> {
+  const { data } = await supabase
+    .from("users")
+    .select("id, email, role, client_id, clients(name)")
+    .eq("id", id)
+    .single();
+  return (data as AppUserWithClient | null) ?? null;
+}
+
 export interface RecentVisitRow {
   id: string;
   client_id: string;

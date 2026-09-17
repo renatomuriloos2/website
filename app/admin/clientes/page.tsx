@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAllClients, getAllAppUsers } from "@/lib/admin-data";
 import { createClientAction, deleteClientAction } from "@/lib/actions/admin";
+import { SystemCheckboxes } from "@/components/SystemCheckboxes";
+import { SYSTEMS } from "@/lib/constants";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 
@@ -18,7 +20,7 @@ export default async function ClientesPage() {
       <h1 className="mb-1 text-xl font-semibold text-rethink-cream">Gestionar clientes</h1>
       <p className="mb-6 text-sm text-rethink-cream/60">
         Alta, edición y baja de clientes. Al crear un cliente se generan sus rangos óptimos por
-        defecto para los 4 sistemas.
+        defecto para los sistemas que marques.
       </p>
 
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -83,6 +85,7 @@ export default async function ClientesPage() {
               </label>
               <input id="location" name="location" className="input" />
             </div>
+            <SystemCheckboxes selected={SYSTEMS} />
             <button type="submit" className="btn-primary">
               Crear cliente
             </button>

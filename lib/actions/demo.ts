@@ -2,16 +2,28 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { requireAppUser } from "@/lib/auth";
-import { DEFAULT_PARAMETERS, SYSTEMS } from "@/lib/constants";
+import { DEFAULT_PARAMETERS } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 import { Priority, SystemType } from "@/types/database";
 
 const DEMO_PREFIX = "[Demo] ";
 
-const DEMO_CLIENTS = [
-  { name: `${DEMO_PREFIX}Textilera Elcatex`, location: "San Pedro Sula, Honduras" },
-  { name: `${DEMO_PREFIX}Hotel Las Brisas`, location: "Roatán, Honduras" },
-  { name: `${DEMO_PREFIX}Planta San Rafael`, location: "Tegucigalpa, Honduras" },
+const DEMO_CLIENTS: { name: string; location: string; systems: SystemType[] }[] = [
+  {
+    name: `${DEMO_PREFIX}Textilera Elcatex`,
+    location: "San Pedro Sula, Honduras",
+    systems: ["Calderas", "Enfriamiento"],
+  },
+  {
+    name: `${DEMO_PREFIX}Hotel Las Brisas`,
+    location: "Roatán, Honduras",
+    systems: ["Enfriamiento", "PTAR"],
+  },
+  {
+    name: `${DEMO_PREFIX}Planta San Rafael`,
+    location: "Tegucigalpa, Honduras",
+    systems: ["Calderas", "Vapor"],
+  },
 ];
 
 const DEMO_RANGES: Record<SystemType, Record<string, { min: number; max: number }>> = {
@@ -83,15 +95,17 @@ export async function seedDemoDataAction() {
   const supabase = createClient();
 
   for (const [clientIndex, demoClient] of DEMO_CLIENTS.entries()) {
+    const { systems: demoSystems, ...clientFields } = demoClient;
+
     const { data: client, error: clientError } = await supabase
       .from("clients")
-      .insert(demoClient)
+      .insert({ ...clientFields, active_systems: demoSystems })
       .select()
       .single();
 
     if (clientError) throw new Error(clientError.message);
 
-    const rangeRows = SYSTEMS.flatMap((system) =>
+    const rangeRows = demoSystems.flatMap((system) =>
       DEFAULT_PARAMETERS[system].map((p) => {
         const range = DEMO_RANGES[system][p.param_key];
         return {
@@ -108,7 +122,6 @@ export async function seedDemoDataAction() {
     const { error: rangesError } = await supabase.from("parameter_ranges").insert(rangeRows);
     if (rangesError) throw new Error(rangesError.message);
 
-    const demoSystems: SystemType[] = ["Calderas", "Enfriamiento"];
     const nextVisitOffsets = [-5, 7, 30]; // vencido / próximo / programado, por cliente
 
     for (const system of demoSystems) {
