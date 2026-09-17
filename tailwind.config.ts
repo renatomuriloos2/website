@@ -15,8 +15,9 @@ const config: Config = {
           amber: "#FFB000",
           brown: "#653621",
           green: "#82B534",
-          cream: "#FFFCE0",
+          cream: "rgb(var(--rethink-cream-rgb) / <alpha-value>)",
         },
+        surface: "rgb(var(--surface-rgb) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["var(--font-poppins)", "sans-serif"],

@@ -48,6 +48,9 @@ export default async function ClientesPage() {
                     <td className="py-2 pr-4 text-rethink-cream/80">{formatDate(c.created_at)}</td>
                     <td className="py-2 text-right">
                       <div className="flex justify-end gap-3">
+                        <Link href={`/admin/portal/${c.id}`} className="text-rethink-cream/70 hover:underline">
+                          Ver portal
+                        </Link>
                         <Link href={`/admin/clientes/${c.id}`} className="text-rethink-orange hover:underline">
                           Editar
                         </Link>

@@ -13,7 +13,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const appUser = await requireAppUser("client");
 
   return (
-    <Shell navItems={NAV_ITEMS} userEmail={appUser.email}>
+    <Shell navItems={NAV_ITEMS} userEmail={appUser.email} accountHref="/portal/cuenta">
       {children}
     </Shell>
   );

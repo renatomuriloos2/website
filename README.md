@@ -74,23 +74,68 @@ Abre [http://localhost:3000](http://localhost:3000).
    Rethink. Una vez propagados, el portal queda disponible en ese dominio con HTTPS
    automático.
 
+## 8. Configurar los correos de Supabase (Site URL)
+
+Por defecto, Supabase manda los links de sus correos (invitación, recuperación de
+contraseña) al `Site URL` configurado en el proyecto, que empieza en
+`http://localhost:3000`. Si no lo cambias, esos links llevan a la máquina de quien los
+generó en vez de al sitio real. Para arreglarlo:
+
+1. En Supabase, ve a **Authentication → URL Configuration**.
+2. Cambia **Site URL** a tu dominio real (el de Vercel o el propio una vez conectado),
+   por ejemplo `https://website-lime-one-96.vercel.app`.
+3. En **Redirect URLs**, agrega ese mismo dominio (puedes usar `https://tu-dominio/**`
+   para cubrir todas las rutas) y, si quieres seguir probando en local,
+   `http://localhost:3000/**`.
+4. Guarda. Los próximos correos de invitación/recuperación ya apuntarán al sitio
+   correcto, y `app/auth/callback` recibe esos links, valida el token y deja al usuario
+   crear su contraseña.
+
+Si ya generaste un link de recuperación antes de este cambio, ese link específico sigue
+apuntando a localhost — vuelve a mandarlo (**Send password recovery** desde
+Authentication → Users) después de configurar el Site URL.
+
 ## Estructura del proyecto
 
 ```
 app/
   login/                  Login (Supabase Auth)
+  auth/callback/          Procesa links de invitación/recuperación de Supabase
   portal/                 Vista cliente: resumen, historial, dosificación,
-                           recomendaciones, calendario
-  admin/                  Vista administrador: registrar visita, clientes, rangos
+                           recomendaciones, calendario, mi cuenta
+  admin/                  Vista administrador: registrar visita, visitas (editar/
+                           eliminar), clientes, rangos, mi cuenta
+  admin/portal/[clientId] Admin navegando el portal de un cliente específico
+                           (mismas vistas que /portal, de solo lectura)
+components/views/         Las 5 vistas del portal (Resumen, Historial, Dosificación,
+                           Recomendaciones, Calendario), compartidas entre /portal
+                           y /admin/portal/[clientId] para que nunca se desalineen
 lib/
   supabase/               Clientes de Supabase (browser, server, middleware)
   actions/admin.ts        Server actions de administración (mutaciones con RLS)
+  actions/demo.ts         Server actions para sembrar/borrar datos de demostración
   portal-data.ts          Consultas de solo lectura para la vista cliente
   admin-data.ts           Consultas de solo lectura para la vista admin
   constants.ts            Catálogo de parámetros por defecto por sistema
 supabase/schema.sql       Esquema completo + políticas RLS
 middleware.ts             Protege rutas por sesión y por rol (admin/client)
 ```
+
+## Lo que puede hacer un administrador
+
+Además de registrar visitas, gestionar clientes y rangos:
+
+- **Ver como cliente** (nav lateral, o "Ver portal" en la fila de un cliente): navega el
+  mismo Resumen, Historial, Dosificación, Recomendaciones y Calendario que ve ese cliente,
+  sin necesidad de tener su contraseña. Es de solo lectura — los cambios se hacen desde
+  Registrar visita / Rangos.
+- **Visitas**: lista todas las visitas registradas; permite editar los datos generales
+  (fecha, técnico, recomendación, prioridad, próxima visita) o eliminar una visita completa
+  si hubo un error de captura. Las lecturas y dosificación de una visita no se editan en
+  línea — si hay que corregirlas, se elimina la visita y se vuelve a registrar.
+- **Enviar recuperación**: desde la ficha de un cliente, junto a cada cuenta vinculada, un
+  botón "Enviar recuperación" dispara el correo de restablecimiento de contraseña de
+  Supabase para ese usuario (requiere el Site URL / SMTP configurados, ver más abajo).
 
 ## Cómo funciona el control de acceso
 
@@ -109,6 +154,20 @@ según la guía de marca del brief. El logo oficial de Rethink (isotipo de círc
 versión blanca para fondos oscuros) vive en `public/brand/rethink-logo-wordmark-blanco.png`
 y se usa desde `components/Logo.tsx`. El isotipo suelto está en
 `public/brand/rethink-icon-puntos.png` por si se necesita en algún lugar sin el wordmark.
+
+La app tiene un selector de tema claro/oscuro ("Cambiar apariencia", en la barra lateral)
+implementado con variables CSS en `app/globals.css` — el sidebar y el logo se mantienen
+siempre oscuros (el wordmark es blanco y necesita fondo oscuro), mientras el resto de la
+app cambia. La preferencia se guarda por navegador.
+
+## Datos de demostración
+
+Desde **Panel de administrador → Datos de demostración** puedes crear 3 clientes de
+ejemplo (`[Demo] Textilera Elcatex`, `[Demo] Hotel Las Brisas`, `[Demo] Planta San Rafael`)
+con rangos, visitas, lecturas y dosificación reales en tu base de datos — útil para
+explorar la app o hacer una demo sin usar datos de clientes reales. Se identifican por el
+prefijo `[Demo]` y se pueden borrar con el botón de al lado en cualquier momento, sin
+afectar otros clientes.
 
 ## Notas de producción
 

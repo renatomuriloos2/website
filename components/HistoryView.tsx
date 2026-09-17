@@ -14,6 +14,7 @@ import {
 import { PriorityBadge } from "@/components/Badge";
 import { Priority } from "@/types/database";
 import { downloadCsv, formatDate, toCsv } from "@/lib/utils";
+import { useTheme } from "@/components/ThemeProvider";
 
 export interface ParamOption {
   param_key: string;
@@ -39,6 +40,13 @@ export interface HistoryViewProps {
 }
 
 export function HistoryView({ params, seriesByParam, visits, systemLabel }: HistoryViewProps) {
+  const { theme } = useTheme();
+  const axisColor = theme === "dark" ? "rgba(255,252,224,0.4)" : "rgba(23,16,11,0.45)";
+  const gridColor = theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+  const tooltipBg = theme === "dark" ? "#17100B" : "#FFFCE0";
+  const tooltipBorder = theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+  const tooltipText = theme === "dark" ? "#FFFCE0" : "#17100B";
+
   const [selectedParam, setSelectedParam] = useState(params[0]?.param_key ?? "");
   const current = params.find((p) => p.param_key === selectedParam);
   const series = useMemo(() => seriesByParam[selectedParam] ?? [], [seriesByParam, selectedParam]);
@@ -99,18 +107,19 @@ export function HistoryView({ params, seriesByParam, visits, systemLabel }: Hist
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={series} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                 <XAxis
                   dataKey="date"
                   tickFormatter={(v) => formatDate(v)}
-                  stroke="rgba(255,252,224,0.4)"
+                  stroke={axisColor}
                   fontSize={12}
                 />
-                <YAxis domain={yDomain} stroke="rgba(255,252,224,0.4)" fontSize={12} />
+                <YAxis domain={yDomain} stroke={axisColor} fontSize={12} />
                 <Tooltip
                   labelFormatter={(v) => formatDate(v as string)}
-                  contentStyle={{ background: "#17100B", border: "1px solid rgba(255,255,255,0.1)" }}
-                  labelStyle={{ color: "#FFFCE0" }}
+                  contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}` }}
+                  labelStyle={{ color: tooltipText }}
+                  itemStyle={{ color: tooltipText }}
                 />
                 {current.min_value !== null && current.max_value !== null && (
                   <ReferenceArea
