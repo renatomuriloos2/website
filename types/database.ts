@@ -2,7 +2,7 @@ export type SystemType = "Calderas" | "Enfriamiento" | "Vapor" | "PTAR";
 
 export type Priority = "normal" | "atencion" | "urgente";
 
-export type Role = "admin" | "client";
+export type Role = "admin" | "tecnico" | "client";
 
 export interface Client {
   id: string;

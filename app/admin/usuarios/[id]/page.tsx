@@ -3,6 +3,7 @@ import { getAppUserById, getAllClients } from "@/lib/admin-data";
 import { updateUserRoleAction, deleteUserAction } from "@/lib/actions/users";
 import { SetPasswordForm } from "@/components/SetPasswordForm";
 import { requireAppUser } from "@/lib/auth";
+import { roleLabel } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
 export default async function EditUsuarioPage({
@@ -27,7 +28,9 @@ export default async function EditUsuarioPage({
     <div className="max-w-2xl">
       <h1 className="mb-1 text-xl font-semibold text-rethink-cream">{user.email}</h1>
       <p className="mb-6 text-sm text-rethink-cream/60">
-        {user.role === "admin" ? "Administrador" : `Cliente · ${user.clients?.name ?? "sin vincular"}`}
+        {user.role === "client"
+          ? `Cliente · ${user.clients?.name ?? "sin vincular"}`
+          : roleLabel(user.role)}
       </p>
 
       {searchParams.password_set && (
@@ -57,6 +60,7 @@ export default async function EditUsuarioPage({
             </label>
             <select id="role" name="role" defaultValue={user.role} className="input max-w-sm">
               <option value="client">Cliente</option>
+              <option value="tecnico">Técnico</option>
               <option value="admin">Administrador</option>
             </select>
           </div>

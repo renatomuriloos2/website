@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAllAppUsersWithClients, getAllClients } from "@/lib/admin-data";
 import { CreateUserForm } from "@/components/CreateUserForm";
+import { requireAppUser } from "@/lib/auth";
+import { roleLabel } from "@/lib/utils";
 import Link from "next/link";
 
 export default async function UsuariosPage({
@@ -8,6 +10,7 @@ export default async function UsuariosPage({
 }: {
   searchParams: { client_id?: string; created?: string };
 }) {
+  await requireAppUser("admin");
   const supabase = createClient();
   const [users, clients] = await Promise.all([
     getAllAppUsersWithClients(supabase),
@@ -49,9 +52,7 @@ export default async function UsuariosPage({
                 {users.map((u) => (
                   <tr key={u.id} className="border-b border-white/5 last:border-0">
                     <td className="py-2 pr-4 text-rethink-cream/80">{u.email}</td>
-                    <td className="py-2 pr-4 text-rethink-cream/80">
-                      {u.role === "admin" ? "Administrador" : "Cliente"}
-                    </td>
+                    <td className="py-2 pr-4 text-rethink-cream/80">{roleLabel(u.role)}</td>
                     <td className="py-2 pr-4 text-rethink-cream/80">{u.clients?.name ?? "—"}</td>
                     <td className="py-2 text-right">
                       <Link href={`/admin/usuarios/${u.id}`} className="text-rethink-orange hover:underline">

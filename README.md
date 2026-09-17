@@ -22,14 +22,26 @@ Supabase (Postgres + Auth) + Tailwind CSS + Recharts, lista para desplegar en Ve
      git. Solo se usa server-side, en `lib/supabase/admin.ts`, para que **Gestionar
      usuarios** pueda crear cuentas y cambiar contraseñas sin pasar por el dashboard.)
 
-> **¿Ya tenías este proyecto corriendo antes de esta versión?** Solo te falta una
-> columna nueva. Ve a **SQL Editor** y corre:
+> **¿Ya tenías este proyecto corriendo antes de esta versión?** Te faltan dos cambios.
+> Ve a **SQL Editor** y corre:
 > ```sql
 > alter table clients add column if not exists active_systems text[] not null default '{}';
 > update clients set active_systems = array['Calderas','Enfriamiento','Vapor','PTAR']
 >   where active_systems = '{}';
+>
+> alter table users drop constraint if exists users_role_check;
+> alter table users add constraint users_role_check
+>   check (role in ('admin', 'tecnico', 'client'));
+>
+> create or replace function is_staff()
+> returns boolean language sql security definer stable set search_path = public
+> as $$ select coalesce(auth_role() in ('admin', 'tecnico'), false); $$;
 > ```
-> (En un proyecto nuevo no hace falta — ya está incluido en `schema.sql`.)
+> y luego vuelve a correr, desde `schema.sql`, todo el bloque **ROW LEVEL SECURITY** de
+> `clients` / `parameter_ranges` / `visits` / `visit_readings` / `visit_dosing` (cada
+> policy hace `drop ... if exists` antes de crear, así que repetirlas es seguro) para que
+> queden usando `is_staff()` en vez de `is_admin()`.
+> (En un proyecto nuevo no hace falta nada de esto — ya está incluido en `schema.sql`.)
 
 ## 2. Configurar variables de entorno
 
@@ -137,10 +149,23 @@ lib/
   admin-data.ts           Consultas de solo lectura para la vista admin
   constants.ts            Catálogo de parámetros por defecto por sistema
 supabase/schema.sql       Esquema completo + políticas RLS
-middleware.ts             Protege rutas por sesión y por rol (admin/client)
+middleware.ts             Protege rutas por sesión y por rol (admin/tecnico/client)
 ```
 
-## Lo que puede hacer un administrador
+## Roles
+
+- **admin**: acceso completo, incluida Gestión de usuarios.
+- **tecnico**: mismo acceso operativo que admin (registrar visitas, gestionar clientes
+  y sistemas, rangos, ver el portal de un cliente) **excepto** Gestión de usuarios — ni
+  el link del sidebar ni la sección "Cuentas de cliente vinculadas" en la ficha de un
+  cliente aparecen para este rol, y las rutas `/admin/usuarios*` redirigen si se
+  visitan directo por URL. Pensado para los técnicos que hacen las visitas y cargan los
+  datos, sin darles la capacidad de crear o borrar cuentas.
+- **client**: solo ve `/portal`, scoped a su propio `client_id` por RLS.
+
+Para crear el primer técnico: **Usuarios → Nuevo usuario → Rol: Técnico** (como admin).
+
+## Lo que puede hacer un administrador o técnico
 
 Además de registrar visitas, gestionar clientes y rangos:
 
@@ -152,14 +177,15 @@ Además de registrar visitas, gestionar clientes y rangos:
   (fecha, técnico, recomendación, prioridad, próxima visita) o eliminar una visita completa
   si hubo un error de captura. Las lecturas y dosificación de una visita no se editan en
   línea — si hay que corregirlas, se elimina la visita y se vuelve a registrar.
-- **Enviar recuperación**: desde la ficha de un cliente, junto a cada cuenta vinculada, un
-  botón "Enviar recuperación" dispara el correo de restablecimiento de contraseña de
-  Supabase para ese usuario (requiere el Site URL / SMTP configurados, ver más abajo).
-- **Gestionar usuarios**: crea cuentas (admin o cliente) con correo y contraseña directo
-  desde la app, cambia la contraseña de cualquier usuario sin correo de por medio,
-  reasigna una cuenta a otro cliente o cambia su rol, y elimina cuentas. Usa la
-  `service_role key` de Supabase server-side (`lib/supabase/admin.ts`) — nunca se expone
-  al navegador.
+- **Enviar recuperación** (solo admin): desde la ficha de un cliente, junto a cada cuenta
+  vinculada, un botón "Enviar recuperación" dispara el correo de restablecimiento de
+  contraseña de Supabase para ese usuario (requiere el Site URL / SMTP configurados, ver
+  más abajo).
+- **Gestionar usuarios** (solo admin): crea cuentas (admin, técnico o cliente) con correo
+  y contraseña directo desde la app, cambia la contraseña de cualquier usuario sin correo
+  de por medio, reasigna una cuenta a otro cliente o cambia su rol, y elimina cuentas.
+  Usa la `service_role key` de Supabase server-side (`lib/supabase/admin.ts`) — nunca se
+  expone al navegador.
 - **Sistemas por cliente**: en **Clientes → Nuevo/Editar**, marca qué sistemas tiene cada
   cliente (Calderas, Enfriamiento, Vapor, PTAR). Solo esos aparecen en su portal, en
   Registrar visita y en el selector de Rangos óptimos para ese cliente. Desmarcar un
@@ -167,13 +193,16 @@ Además de registrar visitas, gestionar clientes y rangos:
 
 ## Cómo funciona el control de acceso
 
-- La tabla `users` vincula cada cuenta de Supabase Auth con un `role` (`admin` o `client`)
-  y, si es cliente, con su `client_id`.
+- La tabla `users` vincula cada cuenta de Supabase Auth con un `role` (`admin`, `tecnico`
+  o `client`) y, si es cliente, con su `client_id`.
 - Las políticas de Row Level Security en Postgres son la barrera real: aunque el código
-  del cliente tuviera un error, la base de datos nunca devuelve filas de otro `client_id`
-  a una cuenta con rol `client`. Los admins tienen acceso completo.
-- El `middleware.ts` de Next.js redirige por rol (`/admin` vs `/portal`) y protege las
-  rutas de cada vista, como capa adicional de experiencia de usuario.
+  tuviera un error, la base de datos nunca devuelve filas de otro `client_id` a una
+  cuenta con rol `client`. `is_staff()` (admin o técnico) controla clients/rangos/visitas;
+  `is_admin()` — solo admin — controla la tabla `users`, así que un técnico no puede leer
+  ni modificar cuentas aunque intente saltarse la interfaz.
+- El `middleware.ts` de Next.js redirige por rol (`/admin` para admin/tecnico,
+  `/admin/usuarios` solo admin, `/portal` para client) y protege las rutas de cada vista,
+  como capa adicional de experiencia de usuario.
 
 ## Marca
 

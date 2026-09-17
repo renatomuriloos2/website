@@ -38,7 +38,7 @@ function defaultRangeRows(clientId: string, systems: SystemType[]) {
 }
 
 export async function createClientAction(formData: FormData) {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
 
   const name = String(formData.get("name") ?? "").trim();
@@ -62,7 +62,7 @@ export async function createClientAction(formData: FormData) {
 }
 
 export async function updateClientAction(id: string, formData: FormData) {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
 
   const name = String(formData.get("name") ?? "").trim();
@@ -94,7 +94,7 @@ export async function updateClientAction(id: string, formData: FormData) {
 }
 
 export async function deleteClientAction(id: string) {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
 
   const { error } = await supabase.from("clients").delete().eq("id", id);
@@ -152,7 +152,7 @@ export async function sendPasswordResetAction(formData: FormData) {
 }
 
 export async function upsertRangeAction(formData: FormData) {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
 
   const id = String(formData.get("id") ?? "").trim() || null;
@@ -185,7 +185,7 @@ export async function upsertRangeAction(formData: FormData) {
 }
 
 export async function deleteRangeAction(id: string) {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
 
   const { error } = await supabase.from("parameter_ranges").delete().eq("id", id);
@@ -207,7 +207,7 @@ export interface VisitDosingInput {
 }
 
 export async function createVisitAction(formData: FormData) {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
 
   const client_id = String(formData.get("client_id") ?? "").trim();
@@ -263,7 +263,7 @@ export async function createVisitAction(formData: FormData) {
 }
 
 export async function updateVisitAction(id: string, formData: FormData) {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
 
   const visit_date = String(formData.get("visit_date") ?? "").trim();
@@ -287,7 +287,7 @@ export async function updateVisitAction(id: string, formData: FormData) {
 }
 
 export async function deleteVisitAction(id: string) {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
 
   const { error } = await supabase.from("visits").delete().eq("id", id);
