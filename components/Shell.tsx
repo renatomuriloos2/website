@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { LogoutButton } from "@/components/LogoutButton";
@@ -12,10 +13,12 @@ export interface NavItem {
 export function Shell({
   navItems,
   userEmail,
+  accountHref,
   children,
 }: {
   navItems: NavItem[];
   userEmail?: string;
+  accountHref?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -46,6 +49,11 @@ export function Shell({
           <header className="flex items-center justify-end gap-3 border-b border-surface/10 px-6 py-3">
             {userEmail && (
               <span className="text-xs text-rethink-cream/60">{userEmail}</span>
+            )}
+            {accountHref && (
+              <Link href={accountHref} className="btn-secondary text-xs">
+                Mi cuenta
+              </Link>
             )}
             <LogoutButton />
           </header>

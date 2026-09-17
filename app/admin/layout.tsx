@@ -12,7 +12,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const appUser = await requireAppUser("admin");
 
   return (
-    <Shell navItems={NAV_ITEMS} userEmail={appUser.email}>
+    <Shell navItems={NAV_ITEMS} userEmail={appUser.email} accountHref="/admin/cuenta">
       {children}
     </Shell>
   );
