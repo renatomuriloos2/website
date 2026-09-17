@@ -100,18 +100,42 @@ Authentication → Users) después de configurar el Site URL.
 ```
 app/
   login/                  Login (Supabase Auth)
+  auth/callback/          Procesa links de invitación/recuperación de Supabase
   portal/                 Vista cliente: resumen, historial, dosificación,
-                           recomendaciones, calendario
-  admin/                  Vista administrador: registrar visita, clientes, rangos
+                           recomendaciones, calendario, mi cuenta
+  admin/                  Vista administrador: registrar visita, visitas (editar/
+                           eliminar), clientes, rangos, mi cuenta
+  admin/portal/[clientId] Admin navegando el portal de un cliente específico
+                           (mismas vistas que /portal, de solo lectura)
+components/views/         Las 5 vistas del portal (Resumen, Historial, Dosificación,
+                           Recomendaciones, Calendario), compartidas entre /portal
+                           y /admin/portal/[clientId] para que nunca se desalineen
 lib/
   supabase/               Clientes de Supabase (browser, server, middleware)
   actions/admin.ts        Server actions de administración (mutaciones con RLS)
+  actions/demo.ts         Server actions para sembrar/borrar datos de demostración
   portal-data.ts          Consultas de solo lectura para la vista cliente
   admin-data.ts           Consultas de solo lectura para la vista admin
   constants.ts            Catálogo de parámetros por defecto por sistema
 supabase/schema.sql       Esquema completo + políticas RLS
 middleware.ts             Protege rutas por sesión y por rol (admin/client)
 ```
+
+## Lo que puede hacer un administrador
+
+Además de registrar visitas, gestionar clientes y rangos:
+
+- **Ver como cliente** (nav lateral, o "Ver portal" en la fila de un cliente): navega el
+  mismo Resumen, Historial, Dosificación, Recomendaciones y Calendario que ve ese cliente,
+  sin necesidad de tener su contraseña. Es de solo lectura — los cambios se hacen desde
+  Registrar visita / Rangos.
+- **Visitas**: lista todas las visitas registradas; permite editar los datos generales
+  (fecha, técnico, recomendación, prioridad, próxima visita) o eliminar una visita completa
+  si hubo un error de captura. Las lecturas y dosificación de una visita no se editan en
+  línea — si hay que corregirlas, se elimina la visita y se vuelve a registrar.
+- **Enviar recuperación**: desde la ficha de un cliente, junto a cada cuenta vinculada, un
+  botón "Enviar recuperación" dispara el correo de restablecimiento de contraseña de
+  Supabase para ese usuario (requiere el Site URL / SMTP configurados, ver más abajo).
 
 ## Cómo funciona el control de acceso
 

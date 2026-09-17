@@ -57,7 +57,12 @@ export default async function AdminHomePage() {
       </div>
 
       <div className="card overflow-x-auto">
-        <h3 className="mb-4 text-sm font-medium text-rethink-cream">Últimas visitas</h3>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-sm font-medium text-rethink-cream">Últimas visitas</h3>
+          <Link href="/admin/visitas" className="text-xs text-rethink-orange hover:underline">
+            Ver todas
+          </Link>
+        </div>
         {visits.length === 0 ? (
           <p className="text-sm text-rethink-cream/50">Sin visitas registradas todavía.</p>
         ) : (

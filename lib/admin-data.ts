@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Client, ParameterRange, AppUser } from "@/types/database";
+import { Client, ParameterRange, AppUser, Visit, VisitDosing, VisitReading } from "@/types/database";
 
 export async function getAllClients(supabase: SupabaseClient): Promise<Client[]> {
   const { data } = await supabase.from("clients").select("*").order("name");
@@ -34,4 +34,22 @@ export async function getRecentVisits(supabase: SupabaseClient, limit = 10): Pro
     .limit(limit)
     .returns<RecentVisitRow[]>();
   return data ?? [];
+}
+
+export interface VisitWithDetails extends Visit {
+  clients: { name: string } | null;
+  visit_readings: VisitReading[];
+  visit_dosing: VisitDosing[];
+}
+
+export async function getVisitWithDetails(
+  supabase: SupabaseClient,
+  id: string
+): Promise<VisitWithDetails | null> {
+  const { data } = await supabase
+    .from("visits")
+    .select("*, clients(name), visit_readings(*), visit_dosing(*)")
+    .eq("id", id)
+    .single();
+  return (data as VisitWithDetails | null) ?? null;
 }

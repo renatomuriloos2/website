@@ -5,10 +5,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-export interface NavItem {
-  href: string;
-  label: string;
-}
+export type NavItem = { href: string; label: string } | { group: string };
 
 export function Shell({
   navItems,
@@ -30,11 +27,20 @@ export function Shell({
         >
           <Logo className="mb-8 px-2" />
           <nav className="flex flex-1 flex-col gap-1">
-            {navItems.map((item) => (
-              <NavLink key={item.href} href={item.href}>
-                {item.label}
-              </NavLink>
-            ))}
+            {navItems.map((item) =>
+              "group" in item ? (
+                <p
+                  key={item.group}
+                  className="mb-1 mt-4 px-3 text-[11px] font-medium uppercase tracking-wide text-rethink-cream/40 first:mt-0"
+                >
+                  {item.group}
+                </p>
+              ) : (
+                <NavLink key={item.href} href={item.href}>
+                  {item.label}
+                </NavLink>
+              )
+            )}
           </nav>
           <ThemeToggle fullWidth />
         </aside>

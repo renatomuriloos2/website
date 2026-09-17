@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAppUser } from "@/lib/auth";
 import { DEFAULT_PARAMETERS, SYSTEMS } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { SystemType } from "@/types/database";
 
 function slugify(label: string): string {
@@ -101,6 +103,24 @@ export async function unlinkUserAction(id: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin/clientes");
+}
+
+export async function sendPasswordResetAction(formData: FormData) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const email = String(formData.get("email") ?? "").trim();
+  const clientId = String(formData.get("client_id") ?? "").trim();
+  if (!email) throw new Error("Falta el correo del usuario.");
+
+  const host = headers().get("host");
+  const protocol = host?.startsWith("localhost") ? "http" : "https";
+  const redirectTo = `${protocol}://${host}/auth/callback`;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) throw new Error(error.message);
+
+  redirect(`/admin/clientes/${clientId}?reset_sent=${encodeURIComponent(email)}`);
 }
 
 export async function upsertRangeAction(formData: FormData) {
@@ -212,4 +232,40 @@ export async function createVisitAction(formData: FormData) {
 
   revalidatePath("/portal");
   revalidatePath("/admin");
+}
+
+export async function updateVisitAction(id: string, formData: FormData) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const visit_date = String(formData.get("visit_date") ?? "").trim();
+  const technician = String(formData.get("technician") ?? "").trim() || null;
+  const recommendation = String(formData.get("recommendation") ?? "").trim() || null;
+  const priority = String(formData.get("priority") ?? "normal").trim();
+  const next_visit_date = String(formData.get("next_visit_date") ?? "").trim() || null;
+
+  if (!visit_date) throw new Error("La fecha de visita es obligatoria.");
+
+  const { error } = await supabase
+    .from("visits")
+    .update({ visit_date, technician, recommendation, priority, next_visit_date })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/portal");
+  revalidatePath("/admin");
+  revalidatePath("/admin/visitas");
+}
+
+export async function deleteVisitAction(id: string) {
+  await requireAppUser("admin");
+  const supabase = createClient();
+
+  const { error } = await supabase.from("visits").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/portal");
+  revalidatePath("/admin");
+  revalidatePath("/admin/visitas");
 }
