@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { createVisitAction } from "@/lib/actions/admin";
+import { useFormState, useFormStatus } from "react-dom";
+import { createVisitAction, ActionState } from "@/lib/actions/admin";
 import { Client, ParameterRange, SystemType } from "@/types/database";
 import { SYSTEMS } from "@/lib/constants";
 
@@ -12,8 +13,19 @@ interface DosingRow {
   notes: string;
 }
 
+const initialState: ActionState = { error: null };
+
 function systemsFor(client: Client | undefined): SystemType[] {
   return client?.active_systems?.length ? client.active_systems : SYSTEMS;
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className="btn-primary self-start">
+      {pending ? "Registrando..." : "Registrar visita"}
+    </button>
+  );
 }
 
 export function VisitForm({
@@ -23,6 +35,7 @@ export function VisitForm({
   clients: Client[];
   allRanges: ParameterRange[];
 }) {
+  const [state, formAction] = useFormState(createVisitAction, initialState);
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [system, setSystem] = useState<SystemType>(systemsFor(clients[0])[0] ?? SYSTEMS[0]);
 
@@ -86,7 +99,7 @@ export function VisitForm({
   }
 
   return (
-    <form action={createVisitAction} className="flex flex-col gap-6">
+    <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="readings" value={readingsJson} />
       <input type="hidden" name="dosing" value={dosingJson} />
 
@@ -232,9 +245,8 @@ export function VisitForm({
         </div>
       </div>
 
-      <button type="submit" className="btn-primary self-start">
-        Registrar visita
-      </button>
+      {state.error && <p className="text-sm text-red-400">{state.error}</p>}
+      <SubmitButton />
     </form>
   );
 }

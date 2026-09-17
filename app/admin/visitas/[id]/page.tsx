@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getVisitWithDetails } from "@/lib/admin-data";
-import { updateVisitAction, deleteVisitAction } from "@/lib/actions/admin";
+import { EditVisitForm } from "@/components/EditVisitForm";
 import { notFound } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 
@@ -20,63 +20,7 @@ export default async function EditVisitaPage({ params }: { params: { id: string 
       </p>
 
       <div className="card mb-6">
-        <form
-          action={updateVisitAction.bind(null, visit.id)}
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-        >
-          <div>
-            <label className="label">Fecha de visita</label>
-            <input
-              name="visit_date"
-              type="date"
-              required
-              defaultValue={visit.visit_date}
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="label">Técnico</label>
-            <input name="technician" defaultValue={visit.technician ?? ""} className="input" />
-          </div>
-          <div>
-            <label className="label">Próxima visita</label>
-            <input
-              name="next_visit_date"
-              type="date"
-              defaultValue={visit.next_visit_date ?? ""}
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="label">Prioridad</label>
-            <select name="priority" defaultValue={visit.priority} className="input">
-              <option value="normal">Normal</option>
-              <option value="atencion">Atención</option>
-              <option value="urgente">Urgente</option>
-            </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="label">Recomendación</label>
-            <textarea
-              name="recommendation"
-              rows={3}
-              defaultValue={visit.recommendation ?? ""}
-              className="input"
-            />
-          </div>
-          <div className="sm:col-span-2 flex gap-3">
-            <button type="submit" className="btn-primary">
-              Guardar cambios
-            </button>
-            <button
-              type="submit"
-              formAction={deleteVisitAction.bind(null, visit.id)}
-              className="btn-secondary text-red-400"
-            >
-              Eliminar visita
-            </button>
-          </div>
-        </form>
+        <EditVisitForm visit={visit} />
       </div>
 
       <p className="mb-3 text-xs text-rethink-cream/50">

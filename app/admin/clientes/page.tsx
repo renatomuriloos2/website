@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAllClients, getAllAppUsers } from "@/lib/admin-data";
-import { createClientAction, deleteClientAction } from "@/lib/actions/admin";
-import { SystemCheckboxes } from "@/components/SystemCheckboxes";
-import { SYSTEMS } from "@/lib/constants";
+import { CreateClientForm } from "@/components/CreateClientForm";
+import { DeleteClientForm } from "@/components/DeleteClientForm";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 
@@ -56,11 +55,7 @@ export default async function ClientesPage() {
                         <Link href={`/admin/clientes/${c.id}`} className="text-rethink-orange hover:underline">
                           Editar
                         </Link>
-                        <form action={deleteClientAction.bind(null, c.id)}>
-                          <button type="submit" className="text-red-400 hover:underline">
-                            Eliminar
-                          </button>
-                        </form>
+                        <DeleteClientForm clientId={c.id} />
                       </div>
                     </td>
                   </tr>
@@ -72,24 +67,7 @@ export default async function ClientesPage() {
 
         <div className="card">
           <h3 className="mb-4 text-sm font-medium text-rethink-cream">Nuevo cliente</h3>
-          <form action={createClientAction} className="flex flex-col gap-3">
-            <div>
-              <label className="label" htmlFor="name">
-                Nombre
-              </label>
-              <input id="name" name="name" required className="input" />
-            </div>
-            <div>
-              <label className="label" htmlFor="location">
-                Ubicación
-              </label>
-              <input id="location" name="location" className="input" />
-            </div>
-            <SystemCheckboxes selected={SYSTEMS} />
-            <button type="submit" className="btn-primary">
-              Crear cliente
-            </button>
-          </form>
+          <CreateClientForm />
         </div>
       </div>
     </div>
