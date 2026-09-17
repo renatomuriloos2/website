@@ -58,6 +58,36 @@ export async function getVisits(
   return (data ?? []) as Visit[];
 }
 
+export interface UpcomingVisit {
+  id: string;
+  system: SystemType;
+  date: string;
+}
+
+// Próxima visita programada por sistema: la fecha viene del campo
+// next_visit_date de la visita más reciente de cada sistema (no hay una
+// tabla de agenda separada). Solo incluye fechas de hoy en adelante.
+export async function getUpcomingVisits(
+  supabase: SupabaseClient,
+  clientId: string
+): Promise<UpcomingVisit[]> {
+  const systems = await getClientSystems(supabase, clientId);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const upcoming = await Promise.all(
+    systems.map(async (system) => {
+      const visits = await getVisits(supabase, clientId, system);
+      const latest = visits[0];
+      if (latest?.next_visit_date && latest.next_visit_date >= today) {
+        return { id: latest.id, system, date: latest.next_visit_date };
+      }
+      return null;
+    })
+  );
+
+  return upcoming.filter((v): v is UpcomingVisit => v !== null);
+}
+
 export async function getReadingsForVisits(
   supabase: SupabaseClient,
   visitIds: string[]
