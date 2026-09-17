@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAppUserById, getAllClients } from "@/lib/admin-data";
-import { updateUserRoleAction, deleteUserAction } from "@/lib/actions/users";
 import { SetPasswordForm } from "@/components/SetPasswordForm";
+import { UpdateRoleForm } from "@/components/UpdateRoleForm";
+import { DeleteUserForm } from "@/components/DeleteUserForm";
 import { requireAppUser } from "@/lib/auth";
 import { roleLabel } from "@/lib/utils";
 import { notFound } from "next/navigation";
@@ -11,7 +12,7 @@ export default async function EditUsuarioPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { password_set?: string };
+  searchParams: { password_set?: string; role_updated?: string };
 }) {
   const currentUser = await requireAppUser("admin");
   const supabase = createClient();
@@ -39,6 +40,12 @@ export default async function EditUsuarioPage({
         </div>
       )}
 
+      {searchParams.role_updated && (
+        <div className="mb-6 rounded-lg border border-rethink-green/30 bg-rethink-green/10 px-4 py-2 text-sm text-rethink-green">
+          Cambios guardados.
+        </div>
+      )}
+
       <div className="card mb-6">
         <h3 className="mb-1 text-sm font-medium text-rethink-cream">Cambiar contraseña</h3>
         <p className="mb-4 text-xs text-rethink-cream/50">
@@ -50,42 +57,12 @@ export default async function EditUsuarioPage({
 
       <div className="card mb-6">
         <h3 className="mb-4 text-sm font-medium text-rethink-cream">Rol y cliente vinculado</h3>
-        <form
-          action={updateUserRoleAction.bind(null, user.id)}
-          className="flex flex-col gap-3"
-        >
-          <div>
-            <label className="label" htmlFor="role">
-              Rol
-            </label>
-            <select id="role" name="role" defaultValue={user.role} className="input max-w-sm">
-              <option value="client">Cliente</option>
-              <option value="tecnico">Técnico</option>
-              <option value="admin">Administrador</option>
-            </select>
-          </div>
-          <div>
-            <label className="label" htmlFor="client_id">
-              Cliente (si el rol es Cliente)
-            </label>
-            <select
-              id="client_id"
-              name="client_id"
-              defaultValue={user.client_id ?? ""}
-              className="input max-w-sm"
-            >
-              <option value="">— Ninguno (solo para admins) —</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button type="submit" className="btn-secondary self-start">
-            Guardar cambios
-          </button>
-        </form>
+        <UpdateRoleForm
+          userId={user.id}
+          currentRole={user.role}
+          currentClientId={user.client_id}
+          clients={clients}
+        />
       </div>
 
       <div className="card">
@@ -96,11 +73,7 @@ export default async function EditUsuarioPage({
         {isSelf ? (
           <p className="text-sm text-rethink-cream/50">No puedes eliminar tu propia cuenta.</p>
         ) : (
-          <form action={deleteUserAction.bind(null, user.id)}>
-            <button type="submit" className="btn-secondary text-red-400">
-              Eliminar usuario
-            </button>
-          </form>
+          <DeleteUserForm userId={user.id} />
         )}
       </div>
     </div>
