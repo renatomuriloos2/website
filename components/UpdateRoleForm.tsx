@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
-import { createUserAction, ActionState } from "@/lib/actions/users";
+import { updateUserRoleAction, ActionState } from "@/lib/actions/users";
 import { Client, Role } from "@/types/database";
 
 const initialState: ActionState = { error: null };
@@ -10,36 +10,29 @@ const initialState: ActionState = { error: null };
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="btn-primary">
-      {pending ? "Creando..." : "Crear usuario"}
+    <button type="submit" disabled={pending} className="btn-secondary self-start">
+      {pending ? "Guardando..." : "Guardar cambios"}
     </button>
   );
 }
 
-export function CreateUserForm({
+export function UpdateRoleForm({
+  userId,
+  currentRole,
+  currentClientId,
   clients,
-  preselectedClientId,
 }: {
+  userId: string;
+  currentRole: Role;
+  currentClientId: string | null;
   clients: Client[];
-  preselectedClientId: string;
 }) {
-  const [state, formAction] = useFormState(createUserAction, initialState);
-  const [role, setRole] = useState<Role>("client");
+  const action = updateUserRoleAction.bind(null, userId);
+  const [state, formAction] = useFormState(action, initialState);
+  const [role, setRole] = useState<Role>(currentRole);
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
-      <div>
-        <label className="label" htmlFor="email">
-          Correo
-        </label>
-        <input id="email" name="email" type="email" required className="input" />
-      </div>
-      <div>
-        <label className="label" htmlFor="password">
-          Contraseña
-        </label>
-        <input id="password" name="password" type="password" required minLength={8} className="input" />
-      </div>
       <div>
         <label className="label" htmlFor="role">
           Rol
@@ -49,7 +42,7 @@ export function CreateUserForm({
           name="role"
           value={role}
           onChange={(e) => setRole(e.target.value as Role)}
-          className="input"
+          className="input max-w-sm"
         >
           <option value="client">Cliente</option>
           <option value="tecnico">Técnico</option>
@@ -61,7 +54,12 @@ export function CreateUserForm({
           <label className="label" htmlFor="client_id">
             Cliente
           </label>
-          <select id="client_id" name="client_id" defaultValue={preselectedClientId} className="input">
+          <select
+            id="client_id"
+            name="client_id"
+            defaultValue={currentClientId ?? ""}
+            className="input max-w-sm"
+          >
             <option value="">— Selecciona un cliente —</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>

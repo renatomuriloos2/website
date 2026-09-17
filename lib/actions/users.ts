@@ -97,40 +97,66 @@ export async function setUserPasswordAction(
   redirect(`/admin/usuarios/${id}?password_set=1`);
 }
 
-export async function updateUserRoleAction(id: string, formData: FormData) {
-  await requireAppUser("admin");
-  const supabase = createClient();
+export async function updateUserRoleAction(
+  id: string,
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAppUser("admin");
+    const supabase = createClient();
 
-  const role = String(formData.get("role") ?? "client").trim();
-  const clientId = String(formData.get("client_id") ?? "").trim() || null;
+    const role = String(formData.get("role") ?? "client").trim();
+    const clientId = String(formData.get("client_id") ?? "").trim() || null;
 
-  if (role !== "admin" && role !== "tecnico" && role !== "client") throw new Error("Rol inválido.");
-  if (role === "client" && !clientId) throw new Error("Selecciona el cliente al que pertenece esta cuenta.");
+    if (role !== "admin" && role !== "tecnico" && role !== "client") {
+      return { error: "Rol inválido." };
+    }
+    if (role === "client" && !clientId) {
+      return { error: "Selecciona el cliente al que pertenece esta cuenta." };
+    }
 
-  const { error } = await supabase
-    .from("users")
-    .update({ role, client_id: role === "client" ? clientId : null })
-    .eq("id", id);
+    const { error } = await supabase
+      .from("users")
+      .update({ role, client_id: role === "client" ? clientId : null })
+      .eq("id", id);
 
-  if (error) throw new Error(error.message);
+    if (error) return { error: error.message };
 
-  revalidatePath("/admin/usuarios");
-  revalidatePath("/admin/clientes");
-  revalidatePath(`/admin/usuarios/${id}`);
-}
-
-export async function deleteUserAction(id: string) {
-  const currentUser = await requireAppUser("admin");
-  if (currentUser.id === id) {
-    throw new Error("No puedes eliminar tu propia cuenta desde aquí.");
+    revalidatePath("/admin/usuarios");
+    revalidatePath("/admin/clientes");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    const message = err instanceof Error ? err.message : "Error inesperado al guardar los cambios.";
+    return { error: message };
   }
 
-  // Deleting the auth.users row cascades to public.users (FK ON DELETE CASCADE
-  // in schema.sql), so there's nothing separate to clean up here.
-  const admin = createAdminClient();
-  const { error } = await admin.auth.admin.deleteUser(id);
-  if (error) throw new Error(error.message);
+  redirect(`/admin/usuarios/${id}?role_updated=1`);
+}
 
-  revalidatePath("/admin/usuarios");
-  revalidatePath("/admin/clientes");
+export async function deleteUserAction(
+  id: string,
+  _prevState: ActionState
+): Promise<ActionState> {
+  try {
+    const currentUser = await requireAppUser("admin");
+    if (currentUser.id === id) {
+      return { error: "No puedes eliminar tu propia cuenta desde aquí." };
+    }
+
+    // Deleting the auth.users row cascades to public.users (FK ON DELETE CASCADE
+    // in schema.sql), so there's nothing separate to clean up here.
+    const admin = createAdminClient();
+    const { error } = await admin.auth.admin.deleteUser(id);
+    if (error) return { error: error.message };
+
+    revalidatePath("/admin/usuarios");
+    revalidatePath("/admin/clientes");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    const message = err instanceof Error ? err.message : "Error inesperado al eliminar el usuario.";
+    return { error: message };
+  }
+
+  redirect("/admin/usuarios?deleted=1");
 }

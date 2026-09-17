@@ -8,7 +8,7 @@ import Link from "next/link";
 export default async function UsuariosPage({
   searchParams,
 }: {
-  searchParams: { client_id?: string; created?: string };
+  searchParams: { client_id?: string; created?: string; deleted?: string };
 }) {
   await requireAppUser("admin");
   const supabase = createClient();
@@ -30,6 +30,12 @@ export default async function UsuariosPage({
       {searchParams.created && (
         <div className="mb-6 rounded-lg border border-rethink-green/30 bg-rethink-green/10 px-4 py-2 text-sm text-rethink-green">
           Usuario creado.
+        </div>
+      )}
+
+      {searchParams.deleted && (
+        <div className="mb-6 rounded-lg border border-rethink-green/30 bg-rethink-green/10 px-4 py-2 text-sm text-rethink-green">
+          Usuario eliminado.
         </div>
       )}
 
