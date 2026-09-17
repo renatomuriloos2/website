@@ -157,21 +157,38 @@ export async function linkUserAction(formData: FormData) {
 
   if (!id || !email || !clientId) throw new Error("Faltan datos para vincular el usuario.");
 
-  const { error } = await supabase
-    .from("users")
-    .upsert({ id, email, role: "client", client_id: clientId });
-
+  const { error } = await supabase.from("users").upsert({ id, email, role: "client" });
   if (error) throw new Error(error.message);
+
+  const { error: linkError } = await supabase
+    .from("user_clients")
+    .upsert({ user_id: id, client_id: clientId });
+  if (linkError) throw new Error(linkError.message);
 
   revalidatePath("/admin/clientes");
 }
 
-export async function unlinkUserAction(id: string) {
+export async function unlinkUserAction(userId: string, clientId: string) {
   await requireAppUser("admin");
   const supabase = createClient();
 
-  const { error } = await supabase.from("users").delete().eq("id", id);
+  const { error } = await supabase
+    .from("user_clients")
+    .delete()
+    .eq("user_id", userId)
+    .eq("client_id", clientId);
   if (error) throw new Error(error.message);
+
+  const { count } = await supabase
+    .from("user_clients")
+    .select("client_id", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  // Sin ningún cliente vinculado, la cuenta queda huérfana: bórrala por completo.
+  if (!count) {
+    const { error: deleteError } = await supabase.from("users").delete().eq("id", userId);
+    if (deleteError) throw new Error(deleteError.message);
+  }
 
   revalidatePath("/admin/clientes");
 }
@@ -331,7 +348,7 @@ export async function createVisitAction(
       if (dosingError) return { error: dosingError.message };
     }
 
-    revalidatePath("/portal");
+    revalidatePath("/portal", "layout");
     revalidatePath("/admin");
     revalidatePath("/admin/visitas");
     redirect("/admin/visitas?created=1");
@@ -366,7 +383,7 @@ export async function updateVisitAction(
 
     if (error) return { error: error.message };
 
-    revalidatePath("/portal");
+    revalidatePath("/portal", "layout");
     revalidatePath("/admin");
     revalidatePath("/admin/visitas");
   } catch (err) {
@@ -389,7 +406,7 @@ export async function deleteVisitAction(
     const { error } = await supabase.from("visits").delete().eq("id", id);
     if (error) return { error: error.message };
 
-    revalidatePath("/portal");
+    revalidatePath("/portal", "layout");
     revalidatePath("/admin");
     revalidatePath("/admin/visitas");
   } catch (err) {

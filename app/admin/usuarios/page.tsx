@@ -59,7 +59,9 @@ export default async function UsuariosPage({
                   <tr key={u.id} className="border-b border-white/5 last:border-0">
                     <td className="py-2 pr-4 text-rethink-cream/80">{u.email}</td>
                     <td className="py-2 pr-4 text-rethink-cream/80">{roleLabel(u.role)}</td>
-                    <td className="py-2 pr-4 text-rethink-cream/80">{u.clients?.name ?? "—"}</td>
+                    <td className="py-2 pr-4 text-rethink-cream/80">
+                      {u.clients.length > 0 ? u.clients.map((c) => c.name).join(", ") : "—"}
+                    </td>
                     <td className="py-2 text-right">
                       <Link href={`/admin/usuarios/${u.id}`} className="text-rethink-orange hover:underline">
                         Editar

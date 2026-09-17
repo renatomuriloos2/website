@@ -22,7 +22,7 @@ export async function requireAppUser(allowedRoles?: Role | Role[]): Promise<AppU
 
   const { data: appUser } = await supabase
     .from("users")
-    .select("id, email, role, client_id")
+    .select("id, email, role, user_clients(client_id)")
     .eq("id", user.id)
     .single();
 
@@ -37,5 +37,12 @@ export async function requireAppUser(allowedRoles?: Role | Role[]): Promise<AppU
     }
   }
 
-  return appUser as AppUser;
+  const userClients = (appUser as { user_clients?: { client_id: string }[] }).user_clients ?? [];
+
+  return {
+    id: appUser.id,
+    email: appUser.email,
+    role: appUser.role,
+    client_ids: userClients.map((uc) => uc.client_id),
+  } satisfies AppUser;
 }

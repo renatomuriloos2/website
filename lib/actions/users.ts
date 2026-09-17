@@ -19,15 +19,15 @@ export async function createUserAction(
     const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "").trim();
     const role = String(formData.get("role") ?? "client").trim();
-    const clientId = String(formData.get("client_id") ?? "").trim() || null;
+    const clientIds = formData.getAll("client_ids").map(String).filter(Boolean);
 
     if (!email || !password) return { error: "Correo y contraseña son obligatorios." };
     if (password.length < 8) return { error: "La contraseña debe tener al menos 8 caracteres." };
     if (role !== "admin" && role !== "tecnico" && role !== "client") {
       return { error: "Rol inválido." };
     }
-    if (role === "client" && !clientId) {
-      return { error: "Selecciona el cliente al que pertenece esta cuenta." };
+    if (role === "client" && clientIds.length === 0) {
+      return { error: "Selecciona al menos un cliente para esta cuenta." };
     }
 
     const admin = createAdminClient();
@@ -44,13 +44,22 @@ export async function createUserAction(
       id: created.user.id,
       email,
       role,
-      client_id: role === "client" ? clientId : null,
     });
 
     if (insertError) {
       // Revert the auth account so we don't leave an orphaned login with no app row.
       await admin.auth.admin.deleteUser(created.user.id);
       return { error: insertError.message };
+    }
+
+    if (role === "client" && clientIds.length > 0) {
+      const { error: linkError } = await supabase
+        .from("user_clients")
+        .insert(clientIds.map((clientId) => ({ user_id: created.user.id, client_id: clientId })));
+      if (linkError) {
+        await admin.auth.admin.deleteUser(created.user.id);
+        return { error: linkError.message };
+      }
     }
 
     revalidatePath("/admin/usuarios");
@@ -96,21 +105,27 @@ export async function updateUserRoleAction(
     const supabase = createClient();
 
     const role = String(formData.get("role") ?? "client").trim();
-    const clientId = String(formData.get("client_id") ?? "").trim() || null;
+    const clientIds = formData.getAll("client_ids").map(String).filter(Boolean);
 
     if (role !== "admin" && role !== "tecnico" && role !== "client") {
       return { error: "Rol inválido." };
     }
-    if (role === "client" && !clientId) {
-      return { error: "Selecciona el cliente al que pertenece esta cuenta." };
+    if (role === "client" && clientIds.length === 0) {
+      return { error: "Selecciona al menos un cliente para esta cuenta." };
     }
 
-    const { error } = await supabase
-      .from("users")
-      .update({ role, client_id: role === "client" ? clientId : null })
-      .eq("id", id);
-
+    const { error } = await supabase.from("users").update({ role }).eq("id", id);
     if (error) return { error: error.message };
+
+    const { error: unlinkError } = await supabase.from("user_clients").delete().eq("user_id", id);
+    if (unlinkError) return { error: unlinkError.message };
+
+    if (role === "client" && clientIds.length > 0) {
+      const { error: linkError } = await supabase
+        .from("user_clients")
+        .insert(clientIds.map((clientId) => ({ user_id: id, client_id: clientId })));
+      if (linkError) return { error: linkError.message };
+    }
 
     revalidatePath("/admin/usuarios");
     revalidatePath("/admin/clientes");

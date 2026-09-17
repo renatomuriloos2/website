@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { linkUserAction, unlinkUserAction, sendPasswordResetAction } from "@/lib/actions/admin";
 import { EditClientForm } from "@/components/EditClientForm";
+import { getLinkedUsersForClient } from "@/lib/admin-data";
 import { requireAppUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
-import { Client, AppUser } from "@/types/database";
+import { Client } from "@/types/database";
 
 export default async function EditClientPage({
   params,
@@ -22,10 +23,7 @@ export default async function EditClientPage({
 
   if (!client) notFound();
 
-  const { data: linkedUsers } = await supabase
-    .from("users")
-    .select("id, email, role, client_id")
-    .eq("client_id", params.id);
+  const linkedUsers = await getLinkedUsersForClient(supabase, params.id);
 
   return (
     <div className="max-w-2xl">
@@ -52,9 +50,9 @@ export default async function EditClientPage({
             </a>
           </div>
 
-          {(linkedUsers as AppUser[] | null)?.length ? (
+          {linkedUsers.length > 0 ? (
             <ul className="mb-4 flex flex-col gap-2">
-              {(linkedUsers as AppUser[]).map((u) => (
+              {linkedUsers.map((u) => (
                 <li key={u.id} className="flex items-center justify-between text-sm">
                   <span className="text-rethink-cream/80">{u.email}</span>
                   <div className="flex gap-3">
@@ -65,7 +63,7 @@ export default async function EditClientPage({
                         Enviar recuperación
                       </button>
                     </form>
-                    <form action={unlinkUserAction.bind(null, u.id)}>
+                    <form action={unlinkUserAction.bind(null, u.id, client.id)}>
                       <button type="submit" className="text-red-400 hover:underline">
                         Desvincular
                       </button>

@@ -60,14 +60,24 @@ create table if not exists users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   role text not null check (role in ('admin', 'tecnico', 'client')),
+  -- Legacy single-client link, superseded by user_clients below. Kept only so
+  -- old rows don't break; the app no longer reads or writes it.
   client_id uuid references clients(id) on delete set null
+);
+
+-- Un usuario "cliente" puede tener acceso a varios clientes (ej. un contacto
+-- que administra San Juan Textiles y Elcatex a la vez).
+create table if not exists user_clients (
+  user_id uuid not null references users(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  primary key (user_id, client_id)
 );
 
 create index if not exists idx_parameter_ranges_client on parameter_ranges(client_id);
 create index if not exists idx_visits_client on visits(client_id);
 create index if not exists idx_visit_readings_visit on visit_readings(visit_id);
 create index if not exists idx_visit_dosing_visit on visit_dosing(visit_id);
-create index if not exists idx_users_client on users(client_id);
+create index if not exists idx_user_clients_client on user_clients(client_id);
 
 -- ============================================================
 -- FUNCIONES AUXILIARES (SECURITY DEFINER para evitar recursion en RLS)
@@ -91,6 +101,20 @@ stable
 set search_path = public
 as $$
   select client_id from users where id = auth.uid();
+$$;
+
+-- true si el usuario autenticado (rol 'client') tiene acceso al cliente cid,
+-- vía user_clients (un usuario puede estar vinculado a varios clientes).
+create or replace function is_client_of(cid uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from user_clients uc where uc.user_id = auth.uid() and uc.client_id = cid
+  );
 $$;
 
 create or replace function is_admin()
@@ -127,6 +151,7 @@ alter table visits enable row level security;
 alter table visit_readings enable row level security;
 alter table visit_dosing enable row level security;
 alter table users enable row level security;
+alter table user_clients enable row level security;
 
 -- users: cada quien lee su propia fila; admin lee y administra todas
 drop policy if exists "users select own or admin" on users;
@@ -137,10 +162,19 @@ drop policy if exists "users admin write" on users;
 create policy "users admin write" on users
   for all using (is_admin()) with check (is_admin());
 
--- clients: admin/técnico acceso completo; cliente solo lee su propio registro
+-- user_clients: cada quien lee sus propios vínculos; solo staff los administra
+drop policy if exists "user_clients select own or staff" on user_clients;
+create policy "user_clients select own or staff" on user_clients
+  for select using (user_id = auth.uid() or is_staff());
+
+drop policy if exists "user_clients staff write" on user_clients;
+create policy "user_clients staff write" on user_clients
+  for all using (is_staff()) with check (is_staff());
+
+-- clients: admin/técnico acceso completo; cliente solo lee los clientes a los que está vinculado
 drop policy if exists "clients select" on clients;
 create policy "clients select" on clients
-  for select using (is_staff() or id = auth_client_id());
+  for select using (is_staff() or is_client_of(id));
 
 drop policy if exists "clients admin write" on clients;
 create policy "clients admin write" on clients
@@ -157,7 +191,7 @@ create policy "clients admin delete" on clients
 -- parameter_ranges: admin/técnico acceso completo; cliente solo lee lo suyo
 drop policy if exists "ranges select" on parameter_ranges;
 create policy "ranges select" on parameter_ranges
-  for select using (is_staff() or client_id = auth_client_id());
+  for select using (is_staff() or is_client_of(client_id));
 
 drop policy if exists "ranges admin insert" on parameter_ranges;
 create policy "ranges admin insert" on parameter_ranges
@@ -174,7 +208,7 @@ create policy "ranges admin delete" on parameter_ranges
 -- visits: admin/técnico acceso completo; cliente solo lee lo suyo
 drop policy if exists "visits select" on visits;
 create policy "visits select" on visits
-  for select using (is_staff() or client_id = auth_client_id());
+  for select using (is_staff() or is_client_of(client_id));
 
 drop policy if exists "visits admin insert" on visits;
 create policy "visits admin insert" on visits
@@ -193,7 +227,7 @@ drop policy if exists "readings select" on visit_readings;
 create policy "readings select" on visit_readings
   for select using (
     is_staff() or exists (
-      select 1 from visits v where v.id = visit_readings.visit_id and v.client_id = auth_client_id()
+      select 1 from visits v where v.id = visit_readings.visit_id and is_client_of(v.client_id)
     )
   );
 
@@ -214,7 +248,7 @@ drop policy if exists "dosing select" on visit_dosing;
 create policy "dosing select" on visit_dosing
   for select using (
     is_staff() or exists (
-      select 1 from visits v where v.id = visit_dosing.visit_id and v.client_id = auth_client_id()
+      select 1 from visits v where v.id = visit_dosing.visit_id and is_client_of(v.client_id)
     )
   );
 
@@ -269,16 +303,59 @@ create policy "dosing admin delete" on visit_dosing
 -- ============================================================
 
 -- ============================================================
+-- MIGRACIÓN: un usuario cliente con acceso a varios clientes
+-- (si ya corriste este schema.sql antes de que existiera la tabla
+-- user_clients, ejecuta esto una sola vez; en un proyecto nuevo no
+-- hace falta, ya está arriba en el create table y las funciones/
+-- políticas de más arriba)
+-- ============================================================
+-- create table if not exists user_clients (
+--   user_id uuid not null references users(id) on delete cascade,
+--   client_id uuid not null references clients(id) on delete cascade,
+--   primary key (user_id, client_id)
+-- );
+-- create index if not exists idx_user_clients_client on user_clients(client_id);
+--
+-- -- Migra los vínculos existentes de users.client_id a la tabla nueva:
+-- insert into user_clients (user_id, client_id)
+-- select id, client_id from users where client_id is not null
+-- on conflict do nothing;
+--
+-- create or replace function is_client_of(cid uuid)
+-- returns boolean language sql security definer stable set search_path = public
+-- as $$
+--   select exists (
+--     select 1 from user_clients uc where uc.user_id = auth.uid() and uc.client_id = cid
+--   );
+-- $$;
+--
+-- alter table user_clients enable row level security;
+--
+-- drop policy if exists "user_clients select own or staff" on user_clients;
+-- create policy "user_clients select own or staff" on user_clients
+--   for select using (user_id = auth.uid() or is_staff());
+--
+-- drop policy if exists "user_clients staff write" on user_clients;
+-- create policy "user_clients staff write" on user_clients
+--   for all using (is_staff()) with check (is_staff());
+--
+-- Luego vuelve a correr, desde este mismo archivo, todo el bloque
+-- "ROW LEVEL SECURITY" de clients / parameter_ranges / visits /
+-- visit_readings / visit_dosing (cada policy hace "drop ... if exists"
+-- antes de "create", así que repetirlas es seguro) para que queden
+-- usando is_client_of(...) en vez de auth_client_id().
+-- ============================================================
+
+-- ============================================================
 -- PRIMER USUARIO ADMIN
 -- Después de crear el usuario en Authentication > Users (Supabase),
 -- copia su UUID y corre:
 --
--- insert into users (id, email, role, client_id)
--- values ('UUID-DEL-USUARIO', 'admin@rethink.com', 'admin', null);
+-- insert into users (id, email, role) values ('UUID-DEL-USUARIO', 'admin@rethink.com', 'admin');
 --
 -- Para un cliente de prueba, primero crea el cliente:
 -- insert into clients (name, location) values ('Cliente de prueba', 'Bogotá') returning id;
 -- Luego crea su usuario en Authentication > Users y vincúlalo:
--- insert into users (id, email, role, client_id)
--- values ('UUID-DEL-USUARIO', 'cliente@ejemplo.com', 'client', 'UUID-DEL-CLIENTE');
+-- insert into users (id, email, role) values ('UUID-DEL-USUARIO', 'cliente@ejemplo.com', 'client');
+-- insert into user_clients (user_id, client_id) values ('UUID-DEL-USUARIO', 'UUID-DEL-CLIENTE');
 -- ============================================================

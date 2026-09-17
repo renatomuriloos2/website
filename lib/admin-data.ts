@@ -11,36 +11,74 @@ export async function getAllParameterRanges(supabase: SupabaseClient): Promise<P
   return (data ?? []) as ParameterRange[];
 }
 
-export async function getAllAppUsers(supabase: SupabaseClient): Promise<AppUser[]> {
-  const { data } = await supabase.from("users").select("id, email, role, client_id").order("email");
-  return (data ?? []) as AppUser[];
+interface UserClientRow {
+  id: string;
+  email: string;
+  role: AppUser["role"];
+  user_clients: { clients: { id: string; name: string } | null }[];
 }
 
-export interface AppUserWithClient extends AppUser {
-  clients: { name: string } | null;
+function toAppUserWithClients(row: UserClientRow): AppUserWithClients {
+  const clients = row.user_clients.map((uc) => uc.clients).filter((c): c is { id: string; name: string } => c !== null);
+  return {
+    id: row.id,
+    email: row.email,
+    role: row.role,
+    client_ids: clients.map((c) => c.id),
+    clients,
+  };
+}
+
+export async function getAllAppUsers(supabase: SupabaseClient): Promise<AppUserWithClients[]> {
+  const { data } = await supabase
+    .from("users")
+    .select("id, email, role, user_clients(clients(id, name))")
+    .order("email")
+    .returns<UserClientRow[]>();
+  return (data ?? []).map(toAppUserWithClients);
+}
+
+export interface AppUserWithClients extends AppUser {
+  clients: { id: string; name: string }[];
 }
 
 export async function getAllAppUsersWithClients(
   supabase: SupabaseClient
-): Promise<AppUserWithClient[]> {
-  const { data } = await supabase
-    .from("users")
-    .select("id, email, role, client_id, clients(name)")
-    .order("email")
-    .returns<AppUserWithClient[]>();
-  return data ?? [];
+): Promise<AppUserWithClients[]> {
+  return getAllAppUsers(supabase);
 }
 
 export async function getAppUserById(
   supabase: SupabaseClient,
   id: string
-): Promise<AppUserWithClient | null> {
+): Promise<AppUserWithClients | null> {
   const { data } = await supabase
     .from("users")
-    .select("id, email, role, client_id, clients(name)")
+    .select("id, email, role, user_clients(clients(id, name))")
     .eq("id", id)
-    .single();
-  return (data as AppUserWithClient | null) ?? null;
+    .single<UserClientRow>();
+  return data ? toAppUserWithClients(data) : null;
+}
+
+export async function getUserCountsByClient(supabase: SupabaseClient): Promise<Map<string, number>> {
+  const { data } = await supabase.from("user_clients").select("client_id");
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    counts.set(row.client_id, (counts.get(row.client_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+export async function getLinkedUsersForClient(
+  supabase: SupabaseClient,
+  clientId: string
+): Promise<{ id: string; email: string }[]> {
+  const { data } = await supabase
+    .from("users")
+    .select("id, email, user_clients!inner(client_id)")
+    .eq("user_clients.client_id", clientId)
+    .order("email");
+  return (data ?? []).map((u) => ({ id: u.id, email: u.email }));
 }
 
 export interface RecentVisitRow {
