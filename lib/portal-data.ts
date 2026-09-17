@@ -7,11 +7,22 @@ export async function getClientSystems(
   clientId: string
 ): Promise<SystemType[]> {
   const { data } = await supabase
+    .from("clients")
+    .select("active_systems")
+    .eq("id", clientId)
+    .single();
+
+  const active = (data?.active_systems ?? []) as SystemType[];
+  if (active.length > 0) return active;
+
+  // Cliente sin active_systems configurado (datos previos a esta columna):
+  // reconstruye a partir de qué sistemas tienen rangos cargados.
+  const { data: ranges } = await supabase
     .from("parameter_ranges")
     .select("system")
     .eq("client_id", clientId);
 
-  const found = Array.from(new Set((data ?? []).map((r) => r.system as SystemType)));
+  const found = Array.from(new Set((ranges ?? []).map((r) => r.system as SystemType)));
   return found.length > 0 ? found : SYSTEMS;
 }
 

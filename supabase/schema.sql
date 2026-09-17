@@ -11,6 +11,7 @@ create table if not exists clients (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   location text,
+  active_systems text[] not null default '{}',
   created_at timestamptz not null default now()
 );
 
@@ -220,6 +221,16 @@ create policy "dosing admin delete" on visit_dosing
 -- Se usa desde el código (lib/constants.ts) para poblar rangos
 -- por defecto al crear un cliente nuevo. Ver esa constante para
 -- los mismos param_key/label/unit descritos en el brief.
+-- ============================================================
+
+-- ============================================================
+-- MIGRACIÓN (si ya corriste este schema.sql antes de que existiera
+-- la columna active_systems, ejecuta esto una sola vez; en un
+-- proyecto nuevo no hace falta, ya está en el create table de arriba)
+-- ============================================================
+-- alter table clients add column if not exists active_systems text[] not null default '{}';
+-- update clients set active_systems = array['Calderas','Enfriamiento','Vapor','PTAR']
+--   where active_systems = '{}';
 -- ============================================================
 
 -- ============================================================

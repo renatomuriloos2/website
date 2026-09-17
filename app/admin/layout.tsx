@@ -7,6 +7,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/visitas", label: "Visitas" },
   { href: "/admin/clientes", label: "Clientes" },
   { href: "/admin/rangos", label: "Rangos óptimos" },
+  { href: "/admin/usuarios", label: "Usuarios" },
   { group: "Portal de clientes" },
   { href: "/admin/portal", label: "Ver como cliente" },
 ];

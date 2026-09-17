@@ -8,6 +8,7 @@ export interface Client {
   id: string;
   name: string;
   location: string | null;
+  active_systems: SystemType[];
   created_at: string;
 }
 
