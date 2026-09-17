@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAppUserById, getAllClients } from "@/lib/admin-data";
-import { setUserPasswordAction, updateUserRoleAction, deleteUserAction } from "@/lib/actions/users";
+import { updateUserRoleAction, deleteUserAction } from "@/lib/actions/users";
+import { SetPasswordForm } from "@/components/SetPasswordForm";
 import { requireAppUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 
@@ -41,24 +42,7 @@ export default async function EditUsuarioPage({
           Se aplica de inmediato, sin enviar correo. Útil para cuentas de prueba o si el
           cliente perdió acceso a su correo.
         </p>
-        <form action={setUserPasswordAction.bind(null, user.id)} className="flex flex-col gap-3">
-          <div>
-            <label className="label" htmlFor="password">
-              Nueva contraseña
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              minLength={8}
-              className="input max-w-sm"
-            />
-          </div>
-          <button type="submit" className="btn-primary self-start">
-            Guardar contraseña
-          </button>
-        </form>
+        <SetPasswordForm userId={user.id} />
       </div>
 
       <div className="card mb-6">
