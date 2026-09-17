@@ -1,12 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAllAppUsersWithClients, getAllClients } from "@/lib/admin-data";
-import { createUserAction } from "@/lib/actions/users";
+import { CreateUserForm } from "@/components/CreateUserForm";
 import Link from "next/link";
 
 export default async function UsuariosPage({
   searchParams,
 }: {
-  searchParams: { client_id?: string };
+  searchParams: { client_id?: string; created?: string };
 }) {
   const supabase = createClient();
   const [users, clients] = await Promise.all([
@@ -23,6 +23,12 @@ export default async function UsuariosPage({
         Crea cuentas y cambia contraseñas directamente desde aquí, sin entrar al dashboard de
         Supabase.
       </p>
+
+      {searchParams.created && (
+        <div className="mb-6 rounded-lg border border-rethink-green/30 bg-rethink-green/10 px-4 py-2 text-sm text-rethink-green">
+          Usuario creado.
+        </div>
+      )}
 
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
         <div className="card overflow-x-auto">
@@ -61,57 +67,7 @@ export default async function UsuariosPage({
 
         <div className="card">
           <h3 className="mb-4 text-sm font-medium text-rethink-cream">Nuevo usuario</h3>
-          <form action={createUserAction} className="flex flex-col gap-3">
-            <div>
-              <label className="label" htmlFor="email">
-                Correo
-              </label>
-              <input id="email" name="email" type="email" required className="input" />
-            </div>
-            <div>
-              <label className="label" htmlFor="password">
-                Contraseña
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                minLength={8}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="role">
-                Rol
-              </label>
-              <select id="role" name="role" defaultValue="client" className="input">
-                <option value="client">Cliente</option>
-                <option value="admin">Administrador</option>
-              </select>
-            </div>
-            <div>
-              <label className="label" htmlFor="client_id">
-                Cliente (si el rol es Cliente)
-              </label>
-              <select
-                id="client_id"
-                name="client_id"
-                defaultValue={preselectedClientId}
-                className="input"
-              >
-                <option value="">— Ninguno (solo para admins) —</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button type="submit" className="btn-primary">
-              Crear usuario
-            </button>
-          </form>
+          <CreateUserForm clients={clients} preselectedClientId={preselectedClientId} />
         </div>
       </div>
     </div>

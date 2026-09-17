@@ -26,6 +26,14 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
+/* The <select> box itself can use a translucent background, but the
+   dropdown popup is native-rendered and needs an opaque background or
+   several browsers fall back to white, making light text unreadable. */
+select option {
+  background-color: rgb(var(--page-bg-rgb));
+  color: rgb(var(--rethink-cream-rgb));
+}
+
 @layer components {
   .card {
     @apply rounded-xl border border-surface/10 bg-surface/5 p-4 shadow-sm;
