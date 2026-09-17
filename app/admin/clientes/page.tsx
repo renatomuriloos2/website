@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getAllClients, getAllAppUsers } from "@/lib/admin-data";
+import { getAllClients, getUserCountsByClient } from "@/lib/admin-data";
 import { CreateClientForm } from "@/components/CreateClientForm";
 import { DeleteClientForm } from "@/components/DeleteClientForm";
 import Link from "next/link";
@@ -7,12 +7,10 @@ import { formatDate } from "@/lib/utils";
 
 export default async function ClientesPage() {
   const supabase = createClient();
-  const [clients, users] = await Promise.all([getAllClients(supabase), getAllAppUsers(supabase)]);
-
-  const userCountByClient = new Map<string, number>();
-  for (const u of users) {
-    if (u.client_id) userCountByClient.set(u.client_id, (userCountByClient.get(u.client_id) ?? 0) + 1);
-  }
+  const [clients, userCountByClient] = await Promise.all([
+    getAllClients(supabase),
+    getUserCountsByClient(supabase),
+  ]);
 
   return (
     <div>

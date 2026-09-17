@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { updateUserRoleAction, ActionState } from "@/lib/actions/users";
+import { ClientCheckboxes } from "@/components/ClientCheckboxes";
 import { Client, Role } from "@/types/database";
 
 const initialState: ActionState = { error: null };
@@ -19,12 +20,12 @@ function SubmitButton() {
 export function UpdateRoleForm({
   userId,
   currentRole,
-  currentClientId,
+  currentClientIds,
   clients,
 }: {
   userId: string;
   currentRole: Role;
-  currentClientId: string | null;
+  currentClientIds: string[];
   clients: Client[];
 }) {
   const action = updateUserRoleAction.bind(null, userId);
@@ -50,24 +51,7 @@ export function UpdateRoleForm({
         </select>
       </div>
       {role === "client" ? (
-        <div>
-          <label className="label" htmlFor="client_id">
-            Cliente
-          </label>
-          <select
-            id="client_id"
-            name="client_id"
-            defaultValue={currentClientId ?? ""}
-            className="input max-w-sm"
-          >
-            <option value="">— Selecciona un cliente —</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <ClientCheckboxes clients={clients} selected={currentClientIds} />
       ) : (
         <p className="text-xs text-rethink-cream/50">
           {role === "tecnico"

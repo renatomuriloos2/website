@@ -66,8 +66,7 @@ Abre [http://localhost:3000](http://localhost:3000).
    (correo + contraseña). Copia su UUID.
 2. En **SQL Editor**, ejecuta:
    ```sql
-   insert into users (id, email, role, client_id)
-   values ('UUID-DEL-USUARIO', 'admin@rethink.com', 'admin', null);
+   insert into users (id, email, role) values ('UUID-DEL-USUARIO', 'admin@rethink.com', 'admin');
    ```
 3. Inicia sesión en `/login` con ese correo y contraseña. Debe llevarte a `/admin`.
 
@@ -78,9 +77,9 @@ Abre [http://localhost:3000](http://localhost:3000).
    tienen los 4) y se generan automáticamente los rangos óptimos por defecto para esos
    sistemas, listos para editar en **Rangos óptimos**.
 2. Ve a **Usuarios → Nuevo usuario** (o el botón "Crear cuenta para este cliente" desde la
-   ficha del cliente), pon correo + contraseña, rol "Cliente" y selecciona el cliente. Se
-   crea la cuenta y queda vinculada en un solo paso — ya no hace falta pasar por el
-   dashboard de Supabase para esto.
+   ficha del cliente), pon correo + contraseña, rol "Cliente" y marca el cliente (o
+   varios, si esa cuenta debe ver más de uno). Se crea la cuenta y queda vinculada en un
+   solo paso — ya no hace falta pasar por el dashboard de Supabase para esto.
 3. Registra una visita desde **Registrar visita** para ver datos reales en el portal del
    cliente.
 
@@ -128,8 +127,10 @@ Authentication → Users) después de configurar el Site URL.
 app/
   login/                  Login (Supabase Auth)
   auth/callback/          Procesa links de invitación/recuperación de Supabase
-  portal/                 Vista cliente: resumen, historial, dosificación,
-                           recomendaciones, calendario, mi cuenta
+  portal/[clientId]       Vista cliente: resumen, historial, dosificación,
+                           recomendaciones, calendario (un usuario con acceso a
+                           varios clientes ve un selector arriba para cambiar)
+  portal/cuenta           Mi cuenta (independiente del cliente seleccionado)
   admin/                  Vista administrador: registrar visita, visitas (editar/
                            eliminar), clientes, rangos, mi cuenta
   admin/portal/[clientId] Admin navegando el portal de un cliente específico
@@ -161,7 +162,8 @@ middleware.ts             Protege rutas por sesión y por rol (admin/tecnico/cli
   cliente aparecen para este rol, y las rutas `/admin/usuarios*` redirigen si se
   visitan directo por URL. Pensado para los técnicos que hacen las visitas y cargan los
   datos, sin darles la capacidad de crear o borrar cuentas.
-- **client**: solo ve `/portal`, scoped a su propio `client_id` por RLS.
+- **client**: solo ve `/portal`, scoped por RLS a los clientes a los que esté vinculado
+  (puede ser más de uno; ve un selector de cliente arriba si tiene varios).
 
 Para crear el primer técnico: **Usuarios → Nuevo usuario → Rol: Técnico** (como admin).
 
@@ -183,9 +185,9 @@ Además de registrar visitas, gestionar clientes y rangos:
   más abajo).
 - **Gestionar usuarios** (solo admin): crea cuentas (admin, técnico o cliente) con correo
   y contraseña directo desde la app, cambia la contraseña de cualquier usuario sin correo
-  de por medio, reasigna una cuenta a otro cliente o cambia su rol, y elimina cuentas.
-  Usa la `service_role key` de Supabase server-side (`lib/supabase/admin.ts`) — nunca se
-  expone al navegador.
+  de por medio, reasigna los clientes de una cuenta (una cuenta cliente puede tener acceso
+  a varios) o cambia su rol, y elimina cuentas. Usa la `service_role key` de Supabase
+  server-side (`lib/supabase/admin.ts`) — nunca se expone al navegador.
 - **Sistemas por cliente**: en **Clientes → Nuevo/Editar**, marca qué sistemas tiene cada
   cliente (Calderas, Enfriamiento, Vapor, PTAR). Solo esos aparecen en su portal, en
   Registrar visita y en el selector de Rangos óptimos para ese cliente. Desmarcar un
@@ -194,12 +196,14 @@ Además de registrar visitas, gestionar clientes y rangos:
 ## Cómo funciona el control de acceso
 
 - La tabla `users` vincula cada cuenta de Supabase Auth con un `role` (`admin`, `tecnico`
-  o `client`) y, si es cliente, con su `client_id`.
+  o `client`). Si es cliente, la tabla `user_clients` guarda a qué cliente o clientes
+  tiene acceso (relación muchos a muchos).
 - Las políticas de Row Level Security en Postgres son la barrera real: aunque el código
-  tuviera un error, la base de datos nunca devuelve filas de otro `client_id` a una
-  cuenta con rol `client`. `is_staff()` (admin o técnico) controla clients/rangos/visitas;
-  `is_admin()` — solo admin — controla la tabla `users`, así que un técnico no puede leer
-  ni modificar cuentas aunque intente saltarse la interfaz.
+  tuviera un error, la base de datos nunca devuelve filas de un cliente al que la cuenta
+  no esté vinculada en `user_clients` (función `is_client_of()`). `is_staff()` (admin o
+  técnico) controla clients/rangos/visitas; `is_admin()` — solo admin — controla la tabla
+  `users`, así que un técnico no puede leer ni modificar cuentas aunque intente saltarse
+  la interfaz.
 - El `middleware.ts` de Next.js redirige por rol (`/admin` para admin/tecnico,
   `/admin/usuarios` solo admin, `/portal` para client) y protege las rutas de cada vista,
   como capa adicional de experiencia de usuario.

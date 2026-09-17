@@ -30,7 +30,7 @@ export default async function EditUsuarioPage({
       <h1 className="mb-1 text-xl font-semibold text-rethink-cream">{user.email}</h1>
       <p className="mb-6 text-sm text-rethink-cream/60">
         {user.role === "client"
-          ? `Cliente · ${user.clients?.name ?? "sin vincular"}`
+          ? `Cliente · ${user.clients.length > 0 ? user.clients.map((c) => c.name).join(", ") : "sin vincular"}`
           : roleLabel(user.role)}
       </p>
 
@@ -60,7 +60,7 @@ export default async function EditUsuarioPage({
         <UpdateRoleForm
           userId={user.id}
           currentRole={user.role}
-          currentClientId={user.client_id}
+          currentClientIds={user.client_ids}
           clients={clients}
         />
       </div>

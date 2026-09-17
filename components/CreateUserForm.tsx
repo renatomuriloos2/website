@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { createUserAction, ActionState } from "@/lib/actions/users";
+import { ClientCheckboxes } from "@/components/ClientCheckboxes";
 import { Client, Role } from "@/types/database";
 
 const initialState: ActionState = { error: null };
@@ -57,19 +58,10 @@ export function CreateUserForm({
         </select>
       </div>
       {role === "client" ? (
-        <div>
-          <label className="label" htmlFor="client_id">
-            Cliente
-          </label>
-          <select id="client_id" name="client_id" defaultValue={preselectedClientId} className="input">
-            <option value="">— Selecciona un cliente —</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <ClientCheckboxes
+          clients={clients}
+          selected={preselectedClientId ? [preselectedClientId] : []}
+        />
       ) : (
         <p className="text-xs text-rethink-cream/50">
           {role === "tecnico"

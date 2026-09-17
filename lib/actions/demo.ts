@@ -193,7 +193,7 @@ export async function seedDemoDataAction() {
   revalidatePath("/admin");
   revalidatePath("/admin/clientes");
   revalidatePath("/admin/rangos");
-  revalidatePath("/portal");
+  revalidatePath("/portal", "layout");
 }
 
 export async function clearDemoDataAction() {
@@ -206,5 +206,5 @@ export async function clearDemoDataAction() {
   revalidatePath("/admin");
   revalidatePath("/admin/clientes");
   revalidatePath("/admin/rangos");
-  revalidatePath("/portal");
+  revalidatePath("/portal", "layout");
 }

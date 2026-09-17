@@ -56,5 +56,5 @@ export interface AppUser {
   id: string;
   email: string;
   role: Role;
-  client_id: string | null;
+  client_ids: string[];
 }
