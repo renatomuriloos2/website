@@ -44,6 +44,7 @@ export function CreateUserForm({
         </label>
         <select id="role" name="role" defaultValue="client" className="input">
           <option value="client">Cliente</option>
+          <option value="tecnico">Técnico</option>
           <option value="admin">Administrador</option>
         </select>
       </div>

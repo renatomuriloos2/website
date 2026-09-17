@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { AppUser } from "@/types/database";
+import { AppUser, Role } from "@/types/database";
 import { redirect } from "next/navigation";
 
 export async function getSessionUser() {
@@ -10,7 +10,7 @@ export async function getSessionUser() {
   return user;
 }
 
-export async function requireAppUser(role?: "admin" | "client"): Promise<AppUser> {
+export async function requireAppUser(allowedRoles?: Role | Role[]): Promise<AppUser> {
   const supabase = createClient();
   const {
     data: { user },
@@ -30,8 +30,11 @@ export async function requireAppUser(role?: "admin" | "client"): Promise<AppUser
     redirect("/login");
   }
 
-  if (role && appUser.role !== role) {
-    redirect(appUser.role === "admin" ? "/admin" : "/portal");
+  if (allowedRoles) {
+    const allowed = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+    if (!allowed.includes(appUser.role)) {
+      redirect(appUser.role === "client" ? "/portal" : "/admin");
+    }
   }
 
   return appUser as AppUser;

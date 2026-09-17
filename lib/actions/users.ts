@@ -34,7 +34,9 @@ export async function createUserAction(
 
     if (!email || !password) return { error: "Correo y contraseña son obligatorios." };
     if (password.length < 8) return { error: "La contraseña debe tener al menos 8 caracteres." };
-    if (role !== "admin" && role !== "client") return { error: "Rol inválido." };
+    if (role !== "admin" && role !== "tecnico" && role !== "client") {
+      return { error: "Rol inválido." };
+    }
     if (role === "client" && !clientId) {
       return { error: "Selecciona el cliente al que pertenece esta cuenta." };
     }
@@ -102,7 +104,7 @@ export async function updateUserRoleAction(id: string, formData: FormData) {
   const role = String(formData.get("role") ?? "client").trim();
   const clientId = String(formData.get("client_id") ?? "").trim() || null;
 
-  if (role !== "admin" && role !== "client") throw new Error("Rol inválido.");
+  if (role !== "admin" && role !== "tecnico" && role !== "client") throw new Error("Rol inválido.");
   if (role === "client" && !clientId) throw new Error("Selecciona el cliente al que pertenece esta cuenta.");
 
   const { error } = await supabase

@@ -27,6 +27,16 @@ export function nextVisitStatus(dateStr: string | null): NextVisitStatus | null 
   return "programado";
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Administrador",
+  tecnico: "Técnico",
+  client: "Cliente",
+};
+
+export function roleLabel(role: string): string {
+  return ROLE_LABELS[role] ?? role;
+}
+
 export function isOutOfRange(value: number, min: number | null, max: number | null): boolean {
   if (min !== null && value < min) return true;
   if (max !== null && value > max) return true;

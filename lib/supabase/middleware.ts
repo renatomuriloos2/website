@@ -55,11 +55,17 @@ export async function updateSession(request: NextRequest) {
 
     if (pathname === "/login" || pathname === "/") {
       const url = request.nextUrl.clone();
-      url.pathname = role === "admin" ? "/admin" : "/portal";
+      url.pathname = role === "client" ? "/portal" : "/admin";
       return NextResponse.redirect(url);
     }
 
-    if (pathname.startsWith("/admin") && role !== "admin") {
+    if (pathname.startsWith("/admin/usuarios") && role !== "admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin";
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname.startsWith("/admin") && role !== "admin" && role !== "tecnico") {
       const url = request.nextUrl.clone();
       url.pathname = "/portal";
       return NextResponse.redirect(url);

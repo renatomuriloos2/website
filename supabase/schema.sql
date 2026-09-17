@@ -59,7 +59,7 @@ create table if not exists visit_dosing (
 create table if not exists users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
-  role text not null check (role in ('admin', 'client')),
+  role text not null check (role in ('admin', 'tecnico', 'client')),
   client_id uuid references clients(id) on delete set null
 );
 
@@ -103,6 +103,20 @@ as $$
   select coalesce(auth_role() = 'admin', false);
 $$;
 
+-- "staff" = admin o técnico: ambos pueden operar clientes, rangos y
+-- visitas. Solo is_admin() (arriba) puede gestionar cuentas de usuario
+-- — ver las políticas de la tabla `users` más abajo, que siguen usando
+-- is_admin() a propósito.
+create or replace function is_staff()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select coalesce(auth_role() in ('admin', 'tecnico'), false);
+$$;
+
 -- ============================================================
 -- ROW LEVEL SECURITY
 -- ============================================================
@@ -123,98 +137,98 @@ drop policy if exists "users admin write" on users;
 create policy "users admin write" on users
   for all using (is_admin()) with check (is_admin());
 
--- clients: admin full access; cliente solo lee su propio registro
+-- clients: admin/técnico acceso completo; cliente solo lee su propio registro
 drop policy if exists "clients select" on clients;
 create policy "clients select" on clients
-  for select using (is_admin() or id = auth_client_id());
+  for select using (is_staff() or id = auth_client_id());
 
 drop policy if exists "clients admin write" on clients;
 create policy "clients admin write" on clients
-  for insert with check (is_admin());
+  for insert with check (is_staff());
 
 drop policy if exists "clients admin update" on clients;
 create policy "clients admin update" on clients
-  for update using (is_admin()) with check (is_admin());
+  for update using (is_staff()) with check (is_staff());
 
 drop policy if exists "clients admin delete" on clients;
 create policy "clients admin delete" on clients
-  for delete using (is_admin());
+  for delete using (is_staff());
 
--- parameter_ranges: admin full access; cliente solo lee lo suyo
+-- parameter_ranges: admin/técnico acceso completo; cliente solo lee lo suyo
 drop policy if exists "ranges select" on parameter_ranges;
 create policy "ranges select" on parameter_ranges
-  for select using (is_admin() or client_id = auth_client_id());
+  for select using (is_staff() or client_id = auth_client_id());
 
 drop policy if exists "ranges admin insert" on parameter_ranges;
 create policy "ranges admin insert" on parameter_ranges
-  for insert with check (is_admin());
+  for insert with check (is_staff());
 
 drop policy if exists "ranges admin update" on parameter_ranges;
 create policy "ranges admin update" on parameter_ranges
-  for update using (is_admin()) with check (is_admin());
+  for update using (is_staff()) with check (is_staff());
 
 drop policy if exists "ranges admin delete" on parameter_ranges;
 create policy "ranges admin delete" on parameter_ranges
-  for delete using (is_admin());
+  for delete using (is_staff());
 
--- visits: admin full access; cliente solo lee lo suyo
+-- visits: admin/técnico acceso completo; cliente solo lee lo suyo
 drop policy if exists "visits select" on visits;
 create policy "visits select" on visits
-  for select using (is_admin() or client_id = auth_client_id());
+  for select using (is_staff() or client_id = auth_client_id());
 
 drop policy if exists "visits admin insert" on visits;
 create policy "visits admin insert" on visits
-  for insert with check (is_admin());
+  for insert with check (is_staff());
 
 drop policy if exists "visits admin update" on visits;
 create policy "visits admin update" on visits
-  for update using (is_admin()) with check (is_admin());
+  for update using (is_staff()) with check (is_staff());
 
 drop policy if exists "visits admin delete" on visits;
 create policy "visits admin delete" on visits
-  for delete using (is_admin());
+  for delete using (is_staff());
 
 -- visit_readings: heredan el alcance de la visita
 drop policy if exists "readings select" on visit_readings;
 create policy "readings select" on visit_readings
   for select using (
-    is_admin() or exists (
+    is_staff() or exists (
       select 1 from visits v where v.id = visit_readings.visit_id and v.client_id = auth_client_id()
     )
   );
 
 drop policy if exists "readings admin insert" on visit_readings;
 create policy "readings admin insert" on visit_readings
-  for insert with check (is_admin());
+  for insert with check (is_staff());
 
 drop policy if exists "readings admin update" on visit_readings;
 create policy "readings admin update" on visit_readings
-  for update using (is_admin()) with check (is_admin());
+  for update using (is_staff()) with check (is_staff());
 
 drop policy if exists "readings admin delete" on visit_readings;
 create policy "readings admin delete" on visit_readings
-  for delete using (is_admin());
+  for delete using (is_staff());
 
 -- visit_dosing: heredan el alcance de la visita
 drop policy if exists "dosing select" on visit_dosing;
 create policy "dosing select" on visit_dosing
   for select using (
-    is_admin() or exists (
+    is_staff() or exists (
       select 1 from visits v where v.id = visit_dosing.visit_id and v.client_id = auth_client_id()
     )
   );
 
 drop policy if exists "dosing admin insert" on visit_dosing;
 create policy "dosing admin insert" on visit_dosing
-  for insert with check (is_admin());
+  for insert with check (is_staff());
 
 drop policy if exists "dosing admin update" on visit_dosing;
 create policy "dosing admin update" on visit_dosing
-  for update using (is_admin()) with check (is_admin());
+  for update using (is_staff()) with check (is_staff());
 
 drop policy if exists "dosing admin delete" on visit_dosing;
 create policy "dosing admin delete" on visit_dosing
-  for delete using (is_admin());
+  for delete using (is_staff());
 
 -- ============================================================
 -- CATÁLOGO DE PARÁMETROS POR DEFECTO (referencia, no una tabla)
@@ -231,6 +245,27 @@ create policy "dosing admin delete" on visit_dosing
 -- alter table clients add column if not exists active_systems text[] not null default '{}';
 -- update clients set active_systems = array['Calderas','Enfriamiento','Vapor','PTAR']
 --   where active_systems = '{}';
+-- ============================================================
+
+-- ============================================================
+-- MIGRACIÓN: rol "tecnico" (si ya corriste este schema.sql antes de
+-- que existiera este rol, ejecuta esto una sola vez; en un proyecto
+-- nuevo no hace falta, ya está arriba en el create table y las
+-- funciones/políticas de más arriba)
+-- ============================================================
+-- alter table users drop constraint if exists users_role_check;
+-- alter table users add constraint users_role_check
+--   check (role in ('admin', 'tecnico', 'client'));
+--
+-- create or replace function is_staff()
+-- returns boolean language sql security definer stable set search_path = public
+-- as $$ select coalesce(auth_role() in ('admin', 'tecnico'), false); $$;
+--
+-- Luego vuelve a correr, desde este mismo archivo, todo el bloque
+-- "ROW LEVEL SECURITY" de clients / parameter_ranges / visits /
+-- visit_readings / visit_dosing (cada policy hace "drop ... if exists"
+-- antes de "create", así que repetirlas es seguro) para que queden
+-- usando is_staff() en vez de is_admin().
 -- ============================================================
 
 -- ============================================================

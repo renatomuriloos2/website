@@ -13,7 +13,7 @@ export default async function AdminPortalLayout({
   children: React.ReactNode;
   params: { clientId: string };
 }) {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
 
   const [clients, { data: client }] = await Promise.all([

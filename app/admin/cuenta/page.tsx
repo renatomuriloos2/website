@@ -2,7 +2,7 @@ import { requireAppUser } from "@/lib/auth";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 
 export default async function AdminCuentaPage() {
-  const appUser = await requireAppUser("admin");
+  const appUser = await requireAppUser(["admin", "tecnico"]);
 
   return (
     <div>

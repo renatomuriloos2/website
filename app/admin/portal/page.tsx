@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 export default async function AdminPortalLandingPage() {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
   const clients = await getAllClients(supabase);
 

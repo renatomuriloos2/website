@@ -91,7 +91,7 @@ function valueNear(min: number, max: number, position: number): number {
 }
 
 export async function seedDemoDataAction() {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
 
   for (const [clientIndex, demoClient] of DEMO_CLIENTS.entries()) {
@@ -197,7 +197,7 @@ export async function seedDemoDataAction() {
 }
 
 export async function clearDemoDataAction() {
-  await requireAppUser("admin");
+  await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
 
   const { error } = await supabase.from("clients").delete().like("name", `${DEMO_PREFIX}%`);

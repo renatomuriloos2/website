@@ -7,6 +7,7 @@ import {
 } from "@/lib/actions/admin";
 import { SystemCheckboxes } from "@/components/SystemCheckboxes";
 import { SYSTEMS } from "@/lib/constants";
+import { requireAppUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { Client, AppUser } from "@/types/database";
 
@@ -17,6 +18,7 @@ export default async function EditClientPage({
   params: { id: string };
   searchParams: { reset_sent?: string };
 }) {
+  const appUser = await requireAppUser(["admin", "tecnico"]);
   const supabase = createClient();
   const { data: client } = await supabase
     .from("clients")
@@ -71,62 +73,64 @@ export default async function EditClientPage({
         </form>
       </div>
 
-      <div className="card">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-medium text-rethink-cream">Cuentas de cliente vinculadas</h3>
-          <a href={`/admin/usuarios?client_id=${client.id}`} className="btn-secondary text-xs">
-            Crear cuenta para este cliente
-          </a>
+      {appUser.role === "admin" && (
+        <div className="card">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-medium text-rethink-cream">Cuentas de cliente vinculadas</h3>
+            <a href={`/admin/usuarios?client_id=${client.id}`} className="btn-secondary text-xs">
+              Crear cuenta para este cliente
+            </a>
+          </div>
+
+          {(linkedUsers as AppUser[] | null)?.length ? (
+            <ul className="mb-4 flex flex-col gap-2">
+              {(linkedUsers as AppUser[]).map((u) => (
+                <li key={u.id} className="flex items-center justify-between text-sm">
+                  <span className="text-rethink-cream/80">{u.email}</span>
+                  <div className="flex gap-3">
+                    <form action={sendPasswordResetAction}>
+                      <input type="hidden" name="email" value={u.email} />
+                      <input type="hidden" name="client_id" value={client.id} />
+                      <button type="submit" className="text-rethink-cream/60 hover:underline">
+                        Enviar recuperación
+                      </button>
+                    </form>
+                    <form action={unlinkUserAction.bind(null, u.id)}>
+                      <button type="submit" className="text-red-400 hover:underline">
+                        Desvincular
+                      </button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mb-4 text-sm text-rethink-cream/50">Sin cuentas vinculadas todavía.</p>
+          )}
+
+          <p className="mb-2 text-xs text-rethink-cream/50">
+            ¿Ya existe la cuenta (creada aquí o en Supabase)? Vincúlala manualmente por UUID:
+          </p>
+          <form action={linkUserAction} className="flex flex-col gap-3">
+            <input type="hidden" name="client_id" value={client.id} />
+            <div>
+              <label className="label" htmlFor="user_id">
+                UUID del usuario (Supabase Auth)
+              </label>
+              <input id="user_id" name="id" required className="input" />
+            </div>
+            <div>
+              <label className="label" htmlFor="user_email">
+                Correo
+              </label>
+              <input id="user_email" name="email" type="email" required className="input" />
+            </div>
+            <button type="submit" className="btn-secondary self-start">
+              Vincular
+            </button>
+          </form>
         </div>
-
-        {(linkedUsers as AppUser[] | null)?.length ? (
-          <ul className="mb-4 flex flex-col gap-2">
-            {(linkedUsers as AppUser[]).map((u) => (
-              <li key={u.id} className="flex items-center justify-between text-sm">
-                <span className="text-rethink-cream/80">{u.email}</span>
-                <div className="flex gap-3">
-                  <form action={sendPasswordResetAction}>
-                    <input type="hidden" name="email" value={u.email} />
-                    <input type="hidden" name="client_id" value={client.id} />
-                    <button type="submit" className="text-rethink-cream/60 hover:underline">
-                      Enviar recuperación
-                    </button>
-                  </form>
-                  <form action={unlinkUserAction.bind(null, u.id)}>
-                    <button type="submit" className="text-red-400 hover:underline">
-                      Desvincular
-                    </button>
-                  </form>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mb-4 text-sm text-rethink-cream/50">Sin cuentas vinculadas todavía.</p>
-        )}
-
-        <p className="mb-2 text-xs text-rethink-cream/50">
-          ¿Ya existe la cuenta (creada aquí o en Supabase)? Vincúlala manualmente por UUID:
-        </p>
-        <form action={linkUserAction} className="flex flex-col gap-3">
-          <input type="hidden" name="client_id" value={client.id} />
-          <div>
-            <label className="label" htmlFor="user_id">
-              UUID del usuario (Supabase Auth)
-            </label>
-            <input id="user_id" name="id" required className="input" />
-          </div>
-          <div>
-            <label className="label" htmlFor="user_email">
-              Correo
-            </label>
-            <input id="user_email" name="email" type="email" required className="input" />
-          </div>
-          <button type="submit" className="btn-secondary self-start">
-            Vincular
-          </button>
-        </form>
-      </div>
+      )}
     </div>
   );
 }
