@@ -5,5 +5,10 @@ export default async function AdminPortalCalendarioPage({
 }: {
   params: { clientId: string };
 }) {
-  return <CalendarioView clientId={params.clientId} />;
+  return (
+    <CalendarioView
+      clientId={params.clientId}
+      downloadHref={`/admin/portal/${params.clientId}/calendario/ics`}
+    />
+  );
 }

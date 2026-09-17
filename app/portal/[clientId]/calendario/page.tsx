@@ -1,5 +1,7 @@
 import { CalendarioView } from "@/components/views/CalendarioView";
 
 export default function CalendarioPage({ params }: { params: { clientId: string } }) {
-  return <CalendarioView clientId={params.clientId} />;
+  return (
+    <CalendarioView clientId={params.clientId} downloadHref={`/portal/${params.clientId}/calendario/ics`} />
+  );
 }
