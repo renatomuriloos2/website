@@ -5,20 +5,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAppUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ActionState, isRedirectError } from "@/lib/action-state";
 
-function isRedirectError(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "digest" in err &&
-    typeof (err as { digest?: unknown }).digest === "string" &&
-    (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
-  );
-}
-
-export interface ActionState {
-  error: string | null;
-}
+export type { ActionState };
 
 export async function createUserAction(
   _prevState: ActionState,

@@ -7,6 +7,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { SystemType } from "@/types/database";
+import { ActionState, isRedirectError } from "@/lib/action-state";
+
+export type { ActionState };
 
 function slugify(label: string): string {
   return label
@@ -37,71 +40,111 @@ function defaultRangeRows(clientId: string, systems: SystemType[]) {
   );
 }
 
-export async function createClientAction(formData: FormData) {
-  await requireAppUser(["admin", "tecnico"]);
-  const supabase = createClient();
+export async function createClientAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAppUser(["admin", "tecnico"]);
+    const supabase = createClient();
 
-  const name = String(formData.get("name") ?? "").trim();
-  const location = String(formData.get("location") ?? "").trim() || null;
-  if (!name) throw new Error("El nombre es obligatorio.");
+    const name = String(formData.get("name") ?? "").trim();
+    const location = String(formData.get("location") ?? "").trim() || null;
+    if (!name) return { error: "El nombre es obligatorio." };
 
-  const systems = parseSystems(formData);
+    const systems = parseSystems(formData);
 
-  const { data: client, error } = await supabase
-    .from("clients")
-    .insert({ name, location, active_systems: systems })
-    .select()
-    .single();
+    const { data: client, error } = await supabase
+      .from("clients")
+      .insert({ name, location, active_systems: systems })
+      .select()
+      .single();
 
-  if (error) throw new Error(error.message);
+    if (error) return { error: error.message };
 
-  await supabase.from("parameter_ranges").insert(defaultRangeRows(client.id, systems));
+    const { error: rangesError } = await supabase
+      .from("parameter_ranges")
+      .insert(defaultRangeRows(client.id, systems));
+    if (rangesError) return { error: rangesError.message };
 
-  revalidatePath("/admin/clientes");
-  revalidatePath("/admin/rangos");
-}
-
-export async function updateClientAction(id: string, formData: FormData) {
-  await requireAppUser(["admin", "tecnico"]);
-  const supabase = createClient();
-
-  const name = String(formData.get("name") ?? "").trim();
-  const location = String(formData.get("location") ?? "").trim() || null;
-  if (!name) throw new Error("El nombre es obligatorio.");
-
-  const systems = parseSystems(formData);
-
-  const { data: existingRanges } = await supabase
-    .from("parameter_ranges")
-    .select("system")
-    .eq("client_id", id);
-  const systemsWithRanges = new Set((existingRanges ?? []).map((r) => r.system));
-  const newlyEnabled = systems.filter((s) => !systemsWithRanges.has(s));
-
-  const { error } = await supabase
-    .from("clients")
-    .update({ name, location, active_systems: systems })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-
-  if (newlyEnabled.length > 0) {
-    await supabase.from("parameter_ranges").insert(defaultRangeRows(id, newlyEnabled));
+    revalidatePath("/admin/clientes");
+    revalidatePath("/admin/rangos");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    const message = err instanceof Error ? err.message : "Error inesperado al crear el cliente.";
+    return { error: message };
   }
 
-  revalidatePath("/admin/clientes");
-  revalidatePath("/admin/rangos");
-  revalidatePath("/admin/portal");
+  return { error: null };
 }
 
-export async function deleteClientAction(id: string) {
-  await requireAppUser(["admin", "tecnico"]);
-  const supabase = createClient();
+export async function updateClientAction(
+  id: string,
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAppUser(["admin", "tecnico"]);
+    const supabase = createClient();
 
-  const { error } = await supabase.from("clients").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+    const name = String(formData.get("name") ?? "").trim();
+    const location = String(formData.get("location") ?? "").trim() || null;
+    if (!name) return { error: "El nombre es obligatorio." };
 
-  revalidatePath("/admin/clientes");
-  revalidatePath("/admin/rangos");
+    const systems = parseSystems(formData);
+
+    const { data: existingRanges } = await supabase
+      .from("parameter_ranges")
+      .select("system")
+      .eq("client_id", id);
+    const systemsWithRanges = new Set((existingRanges ?? []).map((r) => r.system));
+    const newlyEnabled = systems.filter((s) => !systemsWithRanges.has(s));
+
+    const { error } = await supabase
+      .from("clients")
+      .update({ name, location, active_systems: systems })
+      .eq("id", id);
+    if (error) return { error: error.message };
+
+    if (newlyEnabled.length > 0) {
+      const { error: rangesError } = await supabase
+        .from("parameter_ranges")
+        .insert(defaultRangeRows(id, newlyEnabled));
+      if (rangesError) return { error: rangesError.message };
+    }
+
+    revalidatePath("/admin/clientes");
+    revalidatePath("/admin/rangos");
+    revalidatePath("/admin/portal");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    const message = err instanceof Error ? err.message : "Error inesperado al guardar el cliente.";
+    return { error: message };
+  }
+
+  return { error: null };
+}
+
+export async function deleteClientAction(
+  id: string,
+  _prevState: ActionState
+): Promise<ActionState> {
+  try {
+    await requireAppUser(["admin", "tecnico"]);
+    const supabase = createClient();
+
+    const { error } = await supabase.from("clients").delete().eq("id", id);
+    if (error) return { error: error.message };
+
+    revalidatePath("/admin/clientes");
+    revalidatePath("/admin/rangos");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    const message = err instanceof Error ? err.message : "Error inesperado al eliminar el cliente.";
+    return { error: message };
+  }
+
+  return { error: null };
 }
 
 export async function linkUserAction(formData: FormData) {
@@ -151,47 +194,69 @@ export async function sendPasswordResetAction(formData: FormData) {
   redirect(`/admin/clientes/${clientId}?reset_sent=${encodeURIComponent(email)}`);
 }
 
-export async function upsertRangeAction(formData: FormData) {
-  await requireAppUser(["admin", "tecnico"]);
-  const supabase = createClient();
+export async function upsertRangeAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAppUser(["admin", "tecnico"]);
+    const supabase = createClient();
 
-  const id = String(formData.get("id") ?? "").trim() || null;
-  const clientId = String(formData.get("client_id") ?? "").trim();
-  const system = String(formData.get("system") ?? "").trim() as SystemType;
-  const label = String(formData.get("label") ?? "").trim();
-  const unit = String(formData.get("unit") ?? "").trim() || null;
-  const minRaw = String(formData.get("min_value") ?? "").trim();
-  const maxRaw = String(formData.get("max_value") ?? "").trim();
-  const min_value = minRaw === "" ? null : Number(minRaw);
-  const max_value = maxRaw === "" ? null : Number(maxRaw);
+    const id = String(formData.get("id") ?? "").trim() || null;
+    const clientId = String(formData.get("client_id") ?? "").trim();
+    const system = String(formData.get("system") ?? "").trim() as SystemType;
+    const label = String(formData.get("label") ?? "").trim();
+    const unit = String(formData.get("unit") ?? "").trim() || null;
+    const minRaw = String(formData.get("min_value") ?? "").trim();
+    const maxRaw = String(formData.get("max_value") ?? "").trim();
+    const min_value = minRaw === "" ? null : Number(minRaw);
+    const max_value = maxRaw === "" ? null : Number(maxRaw);
 
-  if (!clientId || !system || !label) throw new Error("Faltan datos del parámetro.");
+    if (!clientId || !system || !label) return { error: "Faltan datos del parámetro." };
 
-  if (id) {
-    const { error } = await supabase
-      .from("parameter_ranges")
-      .update({ label, unit, min_value, max_value, updated_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) throw new Error(error.message);
-  } else {
-    const param_key = slugify(label);
-    const { error } = await supabase
-      .from("parameter_ranges")
-      .insert({ client_id: clientId, system, param_key, label, unit, min_value, max_value });
-    if (error) throw new Error(error.message);
+    if (id) {
+      const { error } = await supabase
+        .from("parameter_ranges")
+        .update({ label, unit, min_value, max_value, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) return { error: error.message };
+    } else {
+      const param_key = slugify(label);
+      const { error } = await supabase
+        .from("parameter_ranges")
+        .insert({ client_id: clientId, system, param_key, label, unit, min_value, max_value });
+      if (error) return { error: error.message };
+    }
+
+    revalidatePath("/admin/rangos");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    const message = err instanceof Error ? err.message : "Error inesperado al guardar el parámetro.";
+    return { error: message };
   }
 
-  revalidatePath("/admin/rangos");
+  return { error: null };
 }
 
-export async function deleteRangeAction(id: string) {
-  await requireAppUser(["admin", "tecnico"]);
-  const supabase = createClient();
+export async function deleteRangeAction(
+  id: string,
+  _prevState: ActionState
+): Promise<ActionState> {
+  try {
+    await requireAppUser(["admin", "tecnico"]);
+    const supabase = createClient();
 
-  const { error } = await supabase.from("parameter_ranges").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+    const { error } = await supabase.from("parameter_ranges").delete().eq("id", id);
+    if (error) return { error: error.message };
 
-  revalidatePath("/admin/rangos");
+    revalidatePath("/admin/rangos");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    const message = err instanceof Error ? err.message : "Error inesperado al eliminar el parámetro.";
+    return { error: message };
+  }
+
+  return { error: null };
 }
 
 export interface VisitReadingInput {
@@ -206,94 +271,132 @@ export interface VisitDosingInput {
   notes: string | null;
 }
 
-export async function createVisitAction(formData: FormData) {
-  await requireAppUser(["admin", "tecnico"]);
-  const supabase = createClient();
+export async function createVisitAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAppUser(["admin", "tecnico"]);
+    const supabase = createClient();
 
-  const client_id = String(formData.get("client_id") ?? "").trim();
-  const system = String(formData.get("system") ?? "").trim() as SystemType;
-  const visit_date = String(formData.get("visit_date") ?? "").trim();
-  const technician = String(formData.get("technician") ?? "").trim() || null;
-  const recommendation = String(formData.get("recommendation") ?? "").trim() || null;
-  const priority = String(formData.get("priority") ?? "normal").trim();
-  const next_visit_date = String(formData.get("next_visit_date") ?? "").trim() || null;
-  const readings = JSON.parse(String(formData.get("readings") ?? "[]")) as VisitReadingInput[];
-  const dosing = JSON.parse(String(formData.get("dosing") ?? "[]")) as VisitDosingInput[];
+    const client_id = String(formData.get("client_id") ?? "").trim();
+    const system = String(formData.get("system") ?? "").trim() as SystemType;
+    const visit_date = String(formData.get("visit_date") ?? "").trim();
+    const technician = String(formData.get("technician") ?? "").trim() || null;
+    const recommendation = String(formData.get("recommendation") ?? "").trim() || null;
+    const priority = String(formData.get("priority") ?? "normal").trim();
+    const next_visit_date = String(formData.get("next_visit_date") ?? "").trim() || null;
+    const readings = JSON.parse(String(formData.get("readings") ?? "[]")) as VisitReadingInput[];
+    const dosing = JSON.parse(String(formData.get("dosing") ?? "[]")) as VisitDosingInput[];
 
-  if (!client_id || !system || !visit_date) throw new Error("Faltan datos obligatorios de la visita.");
+    if (!client_id || !system || !visit_date) {
+      return { error: "Faltan datos obligatorios de la visita." };
+    }
 
-  const { data: visit, error } = await supabase
-    .from("visits")
-    .insert({
-      client_id,
-      system,
-      visit_date,
-      technician,
-      recommendation,
-      priority,
-      next_visit_date,
-    })
-    .select()
-    .single();
+    const { data: visit, error } = await supabase
+      .from("visits")
+      .insert({
+        client_id,
+        system,
+        visit_date,
+        technician,
+        recommendation,
+        priority,
+        next_visit_date,
+      })
+      .select()
+      .single();
 
-  if (error) throw new Error(error.message);
+    if (error) return { error: error.message };
 
-  const validReadings = readings.filter((r) => r.param_key && !Number.isNaN(r.value));
-  if (validReadings.length > 0) {
-    await supabase
-      .from("visit_readings")
-      .insert(validReadings.map((r) => ({ visit_id: visit.id, param_key: r.param_key, value: r.value })));
+    const validReadings = readings.filter((r) => r.param_key && !Number.isNaN(r.value));
+    if (validReadings.length > 0) {
+      const { error: readingsError } = await supabase
+        .from("visit_readings")
+        .insert(validReadings.map((r) => ({ visit_id: visit.id, param_key: r.param_key, value: r.value })));
+      if (readingsError) return { error: readingsError.message };
+    }
+
+    const validDosing = dosing.filter((d) => d.product);
+    if (validDosing.length > 0) {
+      const { error: dosingError } = await supabase.from("visit_dosing").insert(
+        validDosing.map((d) => ({
+          visit_id: visit.id,
+          product: d.product,
+          dose: d.dose,
+          unit: d.unit,
+          notes: d.notes,
+        }))
+      );
+      if (dosingError) return { error: dosingError.message };
+    }
+
+    revalidatePath("/portal");
+    revalidatePath("/admin");
+    revalidatePath("/admin/visitas");
+    redirect("/admin/visitas?created=1");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    const message = err instanceof Error ? err.message : "Error inesperado al registrar la visita.";
+    return { error: message };
   }
-
-  const validDosing = dosing.filter((d) => d.product);
-  if (validDosing.length > 0) {
-    await supabase.from("visit_dosing").insert(
-      validDosing.map((d) => ({
-        visit_id: visit.id,
-        product: d.product,
-        dose: d.dose,
-        unit: d.unit,
-        notes: d.notes,
-      }))
-    );
-  }
-
-  revalidatePath("/portal");
-  revalidatePath("/admin");
 }
 
-export async function updateVisitAction(id: string, formData: FormData) {
-  await requireAppUser(["admin", "tecnico"]);
-  const supabase = createClient();
+export async function updateVisitAction(
+  id: string,
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    await requireAppUser(["admin", "tecnico"]);
+    const supabase = createClient();
 
-  const visit_date = String(formData.get("visit_date") ?? "").trim();
-  const technician = String(formData.get("technician") ?? "").trim() || null;
-  const recommendation = String(formData.get("recommendation") ?? "").trim() || null;
-  const priority = String(formData.get("priority") ?? "normal").trim();
-  const next_visit_date = String(formData.get("next_visit_date") ?? "").trim() || null;
+    const visit_date = String(formData.get("visit_date") ?? "").trim();
+    const technician = String(formData.get("technician") ?? "").trim() || null;
+    const recommendation = String(formData.get("recommendation") ?? "").trim() || null;
+    const priority = String(formData.get("priority") ?? "normal").trim();
+    const next_visit_date = String(formData.get("next_visit_date") ?? "").trim() || null;
 
-  if (!visit_date) throw new Error("La fecha de visita es obligatoria.");
+    if (!visit_date) return { error: "La fecha de visita es obligatoria." };
 
-  const { error } = await supabase
-    .from("visits")
-    .update({ visit_date, technician, recommendation, priority, next_visit_date })
-    .eq("id", id);
+    const { error } = await supabase
+      .from("visits")
+      .update({ visit_date, technician, recommendation, priority, next_visit_date })
+      .eq("id", id);
 
-  if (error) throw new Error(error.message);
+    if (error) return { error: error.message };
 
-  revalidatePath("/portal");
-  revalidatePath("/admin");
-  revalidatePath("/admin/visitas");
+    revalidatePath("/portal");
+    revalidatePath("/admin");
+    revalidatePath("/admin/visitas");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    const message = err instanceof Error ? err.message : "Error inesperado al guardar la visita.";
+    return { error: message };
+  }
+
+  return { error: null };
 }
 
-export async function deleteVisitAction(id: string) {
-  await requireAppUser(["admin", "tecnico"]);
-  const supabase = createClient();
+export async function deleteVisitAction(
+  id: string,
+  _prevState: ActionState
+): Promise<ActionState> {
+  try {
+    await requireAppUser(["admin", "tecnico"]);
+    const supabase = createClient();
 
-  const { error } = await supabase.from("visits").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+    const { error } = await supabase.from("visits").delete().eq("id", id);
+    if (error) return { error: error.message };
 
-  revalidatePath("/portal");
-  revalidatePath("/admin");
-  revalidatePath("/admin/visitas");
+    revalidatePath("/portal");
+    revalidatePath("/admin");
+    revalidatePath("/admin/visitas");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    const message = err instanceof Error ? err.message : "Error inesperado al eliminar la visita.";
+    return { error: message };
+  }
+
+  return { error: null };
 }

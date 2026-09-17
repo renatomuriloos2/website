@@ -2,10 +2,14 @@ import { createClient } from "@/lib/supabase/server";
 import { getRecentVisits } from "@/lib/admin-data";
 import { PriorityBadge } from "@/components/Badge";
 import { formatDate } from "@/lib/utils";
-import { deleteVisitAction } from "@/lib/actions/admin";
+import { DeleteVisitForm } from "@/components/DeleteVisitForm";
 import Link from "next/link";
 
-export default async function VisitasPage() {
+export default async function VisitasPage({
+  searchParams,
+}: {
+  searchParams: { created?: string };
+}) {
   const supabase = createClient();
   const visits = await getRecentVisits(supabase, 200);
 
@@ -15,6 +19,12 @@ export default async function VisitasPage() {
       <p className="mb-6 text-sm text-rethink-cream/60">
         Todas las visitas registradas. Edita o elimina una si hubo un error de captura.
       </p>
+
+      {searchParams.created && (
+        <div className="mb-6 rounded-lg border border-rethink-green/30 bg-rethink-green/10 px-4 py-2 text-sm text-rethink-green">
+          Visita registrada.
+        </div>
+      )}
 
       <div className="card overflow-x-auto">
         {visits.length === 0 ? (
@@ -46,11 +56,7 @@ export default async function VisitasPage() {
                       <Link href={`/admin/visitas/${v.id}`} className="text-rethink-orange hover:underline">
                         Editar
                       </Link>
-                      <form action={deleteVisitAction.bind(null, v.id)}>
-                        <button type="submit" className="text-red-400 hover:underline">
-                          Eliminar
-                        </button>
-                      </form>
+                      <DeleteVisitForm visitId={v.id} />
                     </div>
                   </td>
                 </tr>

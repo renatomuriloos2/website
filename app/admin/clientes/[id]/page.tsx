@@ -1,12 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import {
-  updateClientAction,
-  linkUserAction,
-  unlinkUserAction,
-  sendPasswordResetAction,
-} from "@/lib/actions/admin";
-import { SystemCheckboxes } from "@/components/SystemCheckboxes";
-import { SYSTEMS } from "@/lib/constants";
+import { linkUserAction, unlinkUserAction, sendPasswordResetAction } from "@/lib/actions/admin";
+import { EditClientForm } from "@/components/EditClientForm";
 import { requireAppUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { Client, AppUser } from "@/types/database";
@@ -46,31 +40,7 @@ export default async function EditClientPage({
 
       <div className="card mb-6">
         <h3 className="mb-4 text-sm font-medium text-rethink-cream">Datos del cliente</h3>
-        <form action={updateClientAction.bind(null, client.id)} className="flex flex-col gap-3">
-          <div>
-            <label className="label" htmlFor="name">
-              Nombre
-            </label>
-            <input id="name" name="name" defaultValue={client.name} required className="input" />
-          </div>
-          <div>
-            <label className="label" htmlFor="location">
-              Ubicación
-            </label>
-            <input
-              id="location"
-              name="location"
-              defaultValue={client.location ?? ""}
-              className="input"
-            />
-          </div>
-          <SystemCheckboxes
-            selected={client.active_systems?.length ? client.active_systems : SYSTEMS}
-          />
-          <button type="submit" className="btn-primary self-start">
-            Guardar cambios
-          </button>
-        </form>
+        <EditClientForm client={client} />
       </div>
 
       {appUser.role === "admin" && (
