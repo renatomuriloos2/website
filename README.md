@@ -41,6 +41,15 @@ Supabase (Postgres + Auth) + Tailwind CSS + Recharts, lista para desplegar en Ve
 > `clients` / `parameter_ranges` / `visits` / `visit_readings` / `visit_dosing` (cada
 > policy hace `drop ... if exists` antes de crear, así que repetirlas es seguro) para que
 > queden usando `is_staff()` en vez de `is_admin()`.
+>
+> Para poder vincular una cuenta a varios clientes y mandar recordatorios de visita por
+> correo, también corre:
+> ```sql
+> alter table visits add column if not exists technician_id uuid references users(id) on delete set null;
+> alter table visits add column if not exists reminder_sent_at timestamptz;
+> ```
+> Los bloques completos de migración (tabla `user_clients`, función `is_client_of()` y
+> las políticas que la usan) están comentados al final de `schema.sql`.
 > (En un proyecto nuevo no hace falta nada de esto — ya está incluido en `schema.sql`.)
 
 ## 2. Configurar variables de entorno
@@ -121,6 +130,31 @@ Si ya generaste un link de recuperación antes de este cambio, ese link específ
 apuntando a localhost — vuelve a mandarlo (**Send password recovery** desde
 Authentication → Users) después de configurar el Site URL.
 
+## 9. Recordatorios de visita por correo (opcional)
+
+Cuando la próxima visita de un cliente cae dentro de los siguientes 7 días, un cron diario
+le manda un correo a las cuentas cliente vinculadas y, si la visita tiene un técnico
+asignado, también a esa cuenta. Sin configurar esto, el resto de la app funciona igual —
+solo no salen los correos.
+
+1. Crea una cuenta en [resend.com](https://resend.com) (tiene nivel gratuito) y en
+   **API Keys** genera una y cópiala.
+2. En **Domains**, agrega el dominio de Rethink (ej. `rethinksa.com`) y agrega los
+   registros DNS que te da Resend en el proveedor del dominio. Hasta que el dominio no
+   quede verificado, Resend solo entrega correos a la cuenta dueña de la API key — no le
+   llegan a clientes reales, así que este paso no es opcional para producción.
+3. En Vercel, **Settings → Environment Variables**, agrega:
+   - `RESEND_API_KEY` → la API key de Resend.
+   - `RESEND_FROM_EMAIL` → un correo de ese dominio verificado, ej.
+     `notificaciones@rethinksa.com`.
+   - `CRON_SECRET` → un valor aleatorio largo (ej. `openssl rand -hex 24`). Protege
+     `/api/cron/visit-reminders` para que solo Vercel Cron pueda llamarlo.
+4. El cron ya está configurado en [`vercel.json`](./vercel.json) — Vercel lo activa solo
+   al desplegar, corre una vez al día. No hace falta nada más.
+5. Para que un técnico reciba el recordatorio, en **Registrar visita** (o al editar una
+   visita) selecciona su cuenta en **"Notificar a técnico"** — ahí solo aparecen cuentas
+   con rol Técnico ya creadas en Gestión de usuarios.
+
 ## Estructura del proyecto
 
 ```
@@ -135,22 +169,26 @@ app/
                            eliminar), clientes, rangos, mi cuenta
   admin/portal/[clientId] Admin navegando el portal de un cliente específico
                            (mismas vistas que /portal, de solo lectura)
-  admin/usuarios/         Crear cuentas, cambiar contraseñas, reasignar rol/cliente
+  admin/usuarios/         Crear cuentas, cambiar contraseñas, reasignar rol/cliente(s)
+  api/cron/visit-reminders  Cron diario: recordatorio por correo de la próxima visita
 components/views/         Las 5 vistas del portal (Resumen, Historial, Dosificación,
                            Recomendaciones, Calendario), compartidas entre /portal
                            y /admin/portal/[clientId] para que nunca se desalineen
 lib/
   supabase/               Clientes de Supabase (browser, server, middleware)
   supabase/admin.ts       Cliente con service_role key, solo server-side (crear/
-                           eliminar cuentas y cambiar contraseñas)
+                           eliminar cuentas, cambiar contraseñas, cron de recordatorios)
   actions/admin.ts        Server actions de administración (mutaciones con RLS)
   actions/users.ts        Server actions de Gestionar usuarios (auth admin API)
   actions/demo.ts         Server actions para sembrar/borrar datos de demostración
   portal-data.ts          Consultas de solo lectura para la vista cliente
   admin-data.ts           Consultas de solo lectura para la vista admin
   constants.ts            Catálogo de parámetros por defecto por sistema
+  ics.ts                  Genera el archivo .ics para el botón de descarga del calendario
+  email.ts                Envía correos vía Resend (recordatorio de próxima visita)
 supabase/schema.sql       Esquema completo + políticas RLS
 middleware.ts             Protege rutas por sesión y por rol (admin/tecnico/client)
+vercel.json                Configura el cron diario de recordatorios
 ```
 
 ## Roles
