@@ -7,9 +7,10 @@ interface CookieToSet {
   options: CookieOptions;
 }
 
-// /api/cron/* no usa sesión de Supabase — Vercel Cron lo llama sin cookies,
-// y la ruta valida su propio Authorization: Bearer CRON_SECRET.
-const PUBLIC_PATHS = ["/login", "/auth", "/api/cron"];
+// /api/cron/* y /api/whatsapp/* no usan sesión de Supabase — Vercel Cron y
+// Meta los llaman sin cookies. /api/cron valida Authorization: Bearer
+// CRON_SECRET y /api/whatsapp la firma X-Hub-Signature-256 de Meta.
+const PUBLIC_PATHS = ["/login", "/auth", "/api/cron", "/api/whatsapp"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -61,7 +62,13 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (pathname.startsWith("/admin/usuarios") && role !== "admin") {
+    const adminOnly = [
+      "/admin/usuarios",
+      "/admin/whatsapp/configuracion",
+      "/admin/whatsapp/costos",
+      "/admin/whatsapp/probar",
+    ];
+    if (adminOnly.some((p) => pathname.startsWith(p)) && role !== "admin") {
       const url = request.nextUrl.clone();
       url.pathname = "/admin";
       return NextResponse.redirect(url);
