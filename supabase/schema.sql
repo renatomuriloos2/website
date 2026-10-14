@@ -28,6 +28,23 @@ create table if not exists parameter_ranges (
   unique (client_id, system, param_key)
 );
 
+create table if not exists users (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  role text not null check (role in ('admin', 'tecnico', 'client')),
+  -- Legacy single-client link, superseded by user_clients below. Kept only so
+  -- old rows don't break; the app no longer reads or writes it.
+  client_id uuid references clients(id) on delete set null
+);
+
+-- Un usuario "cliente" puede tener acceso a varios clientes (ej. un contacto
+-- que administra San Juan Textiles y Elcatex a la vez).
+create table if not exists user_clients (
+  user_id uuid not null references users(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  primary key (user_id, client_id)
+);
+
 create table if not exists visits (
   id uuid primary key default gen_random_uuid(),
   client_id uuid not null references clients(id) on delete cascade,
@@ -60,23 +77,6 @@ create table if not exists visit_dosing (
   dose numeric,
   unit text,
   notes text
-);
-
-create table if not exists users (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text not null,
-  role text not null check (role in ('admin', 'tecnico', 'client')),
-  -- Legacy single-client link, superseded by user_clients below. Kept only so
-  -- old rows don't break; the app no longer reads or writes it.
-  client_id uuid references clients(id) on delete set null
-);
-
--- Un usuario "cliente" puede tener acceso a varios clientes (ej. un contacto
--- que administra San Juan Textiles y Elcatex a la vez).
-create table if not exists user_clients (
-  user_id uuid not null references users(id) on delete cascade,
-  client_id uuid not null references clients(id) on delete cascade,
-  primary key (user_id, client_id)
 );
 
 create index if not exists idx_parameter_ranges_client on parameter_ranges(client_id);
