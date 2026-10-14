@@ -155,115 +155,6 @@ solo no salen los correos.
    visita) selecciona su cuenta en **"Notificar a técnico"** — ahí solo aparecen cuentas
    con rol Técnico ya creadas en Gestión de usuarios.
 
-## 10. Asistente IA de WhatsApp
-
-Un bot que responde por WhatsApp las dudas técnicas de clientes y prospectos usando
-**Claude** (Anthropic) y una **base de conocimiento** que gestionas desde el portal. Cada
-número tiene un **nivel de acceso** (Público → Cliente → Confidencial) y el bot solo usa
-documentos de ese nivel o inferior; el filtro se aplica en la base de datos, así que la
-información reservada nunca llega al modelo si el contacto no tiene permiso.
-
-En el menú **Asistente WhatsApp** del panel de administración:
-
-| Sección | Quién | Para qué |
-|---|---|---|
-| Panel del bot | admin y técnicos | Mensajes de hoy, chats que requieren atención, estado de la integración y (admin) presupuesto del mes |
-| Conversaciones | admin y técnicos | Ver cada chat, responder como asesor, tomar/devolver el control al bot, vincular el número a un cliente y subirle el nivel de acceso |
-| Base de conocimiento | admin y técnicos | Subir PDF, Word, TXT, Markdown o CSV (o pegar texto), con nivel de acceso y, opcionalmente, exclusivo de un cliente |
-| Costos de IA | admin | Gasto del mes, proyección, costo diario, por modelo y por contacto, % de caché |
-| Probar el bot | admin | Chatear con el bot desde el portal simulando cualquier nivel de acceso |
-| Configuración | admin | Encender/apagar, modelo, esfuerzo, instrucciones, presupuesto mensual, límite diario por contacto, mensajes automáticos |
-
-Cómo decide el bot qué hacer con cada mensaje:
-
-1. Si el número es nuevo, lo registra como **Público** (o **Pendiente**, si en
-   Configuración elegiste aprobar números manualmente).
-2. Si el bot está apagado, el contacto está bloqueado o un asesor tomó el control, solo
-   guarda el mensaje.
-3. Si se agotó el presupuesto del mes o el contacto llegó a su límite diario, no llama a
-   la IA (costo cero) y marca el chat para atención humana.
-4. Si no, Claude busca en la base de conocimiento (búsqueda híbrida: texto completo en
-   español sin tildes + semántica opcional) y responde con formato de WhatsApp. Cuando el
-   cliente pide una persona, quiere cotizar, tiene un reclamo o el bot no encuentra la
-   respuesta, deriva el chat y aparece en **Requieren atención**.
-
-### Paso 1 — Base de datos
-
-En Supabase → **SQL Editor**, corre [`supabase/whatsapp_bot.sql`](./supabase/whatsapp_bot.sql)
-(después de `schema.sql`). Crea las tablas del bot, la función de búsqueda y sus políticas
-RLS. Se puede volver a correr sin problema.
-
-### Paso 2 — Claude (Anthropic)
-
-1. En [console.anthropic.com](https://console.anthropic.com) → **API Keys**, crea una
-   clave.
-2. Recomendado: en **Limits**, pon un límite de gasto mensual en la cuenta además del
-   presupuesto del portal.
-3. Agrega `ANTHROPIC_API_KEY` en Vercel (y en `.env.local`).
-
-El modelo por defecto es **Claude Opus 5.5** (máxima calidad). Desde Configuración puedes
-cambiar a **Sonnet 5.5** (≈ mitad de costo) o **Haiku 5.5** (el más barato) y bajar el
-esfuerzo de razonamiento. Si un filtro de seguridad de Anthropic rechaza una consulta,
-la API la reintenta automáticamente con otro modelo (fallback del lado del servidor, en
-Opus y Sonnet); si aun así no hay respuesta, el bot manda el mensaje de derivación.
-
-### Paso 3 — WhatsApp Cloud API (Meta)
-
-1. En [developers.facebook.com](https://developers.facebook.com) → **My Apps → Create
-   App** (tipo *Business*) y agrega el producto **WhatsApp**. Vincula tu cuenta de
-   WhatsApp Business y el número de la empresa (ese número no puede seguir usándose en la
-   app de WhatsApp Business normal, salvo con la modalidad *coexistence* de Meta).
-2. En **WhatsApp → API Setup** copia el **Phone number ID** →
-   `WHATSAPP_PHONE_NUMBER_ID`.
-3. Crea un token permanente: **Business Settings → System users → Add** (rol admin),
-   **Generate token** con permisos `whatsapp_business_messaging` y
-   `whatsapp_business_management` → `WHATSAPP_ACCESS_TOKEN`. (El token temporal de API
-   Setup vence en 24 h.)
-4. En **App settings → Basic** copia el **App secret** → `WHATSAPP_APP_SECRET` (se usa
-   para verificar que cada webhook viene de Meta).
-5. Inventa un valor aleatorio para `WHATSAPP_VERIFY_TOKEN` (ej. `openssl rand -hex 16`).
-6. Agrega las cuatro variables en Vercel y vuelve a desplegar.
-7. En **WhatsApp → Configuration → Webhook → Edit**:
-   - Callback URL: `https://TU-DOMINIO/api/whatsapp/webhook`
-   - Verify token: el mismo `WHATSAPP_VERIFY_TOKEN`
-   - Luego, en **Webhook fields**, suscríbete a `messages`.
-8. Escribe al número desde tu celular. El chat debe aparecer en **Conversaciones** y el
-   panel debe mostrar las cuatro casillas de integración en verde.
-
-> **Ventana de 24 horas.** WhatsApp solo permite mandar texto libre a un cliente durante
-> las 24 h siguientes a su último mensaje. Las respuestas del bot siempre caen dentro;
-> si un asesor responde desde el portal fuera de esa ventana, el envío falla (haría falta
-> una plantilla aprobada por Meta).
-
-### Paso 4 (opcional) — Búsqueda semántica
-
-Sin esto el bot busca por palabras (sin importar tildes), lo que funciona bien para fichas
-técnicas con nombres de productos. Con búsqueda semántica también encuentra respuestas
-cuando el cliente usa otras palabras ("se me oxida la caldera" → "inhibidor de
-corrosión"). Crea una clave en [voyageai.com](https://www.voyageai.com) (proveedor de
-embeddings recomendado por Anthropic) y agrega `VOYAGE_API_KEY`. Los documentos subidos
-antes de configurarla se indexan con embeddings al editarlos y guardarlos.
-
-### Primeros pasos recomendados
-
-1. **Configuración**: escribe en *Instrucciones* qué hace la empresa, qué productos y
-   servicios ofrece y cualquier regla (ej. "no des precios, deriva a ventas").
-2. **Base de conocimiento**: sube fichas técnicas y preguntas frecuentes como *Público*;
-   procedimientos internos o listas de precios como *Confidencial*; programas de
-   dosificación de un cliente como *Cliente* + ese cliente.
-3. **Probar el bot**: haz las preguntas típicas con cada nivel de acceso y revisa que no
-   se filtre nada reservado.
-4. **Conversaciones**: registra los números de tus contactos de confianza con su cliente y
-   nivel antes de anunciar el número.
-
-### Costos
-
-Cada respuesta registra tokens y costo en `ai_usage`, calculado con la tarifa pública
-(tabla en [`lib/ai/models.ts`](./lib/ai/models.ts); actualízala si Anthropic cambia
-precios). El prompt de sistema se reutiliza desde la caché de Anthropic entre
-conversaciones, lo que abarata la entrada. Las pruebas desde el portal también cuentan
-para el presupuesto del mes.
-
 ## Estructura del proyecto
 
 ```
@@ -280,9 +171,6 @@ app/
                            (mismas vistas que /portal, de solo lectura)
   admin/usuarios/         Crear cuentas, cambiar contraseñas, reasignar rol/cliente(s)
   api/cron/visit-reminders  Cron diario: recordatorio por correo de la próxima visita
-  admin/whatsapp/         Asistente WhatsApp: panel, conversaciones, base de
-                           conocimiento, costos, probar el bot, configuración
-  api/whatsapp/webhook    Webhook de la WhatsApp Cloud API (verifica firma de Meta)
 components/views/         Las 5 vistas del portal (Resumen, Historial, Dosificación,
                            Recomendaciones, Calendario), compartidas entre /portal
                            y /admin/portal/[clientId] para que nunca se desalineen
@@ -298,14 +186,7 @@ lib/
   constants.ts            Catálogo de parámetros por defecto por sistema
   ics.ts                  Genera el archivo .ics para el botón de descarga del calendario
   email.ts                Envía correos vía Resend (recordatorio de próxima visita)
-  ai/assistant.ts         Llamada a Claude con herramientas (buscar conocimiento,
-                           derivar a asesor) y registro de tokens/costo
-  ai/models.ts            Modelos elegibles, tabla de precios, niveles de acceso
-  knowledge/              Extracción de PDF/Word, troceo, embeddings y búsqueda
-  whatsapp/               Cliente de la Cloud API, flujo del bot, agregados de costos
-  actions/whatsapp.ts     Server actions del módulo WhatsApp
 supabase/schema.sql       Esquema completo + políticas RLS
-supabase/whatsapp_bot.sql Tablas, búsqueda híbrida y RLS del asistente de WhatsApp
 middleware.ts             Protege rutas por sesión y por rol (admin/tecnico/client)
 vercel.json                Configura el cron diario de recordatorios
 ```
