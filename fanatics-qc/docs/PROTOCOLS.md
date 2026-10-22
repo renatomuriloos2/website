@@ -83,3 +83,12 @@ the database by `supabase/seed.sql`. Minimums per fiber can be tuned by admins i
   (not a retest) ÷ lots decided (approved, concession, rejected, retest).
 - **Approval rate** = (approved + approved with concession) ÷ decided.
 - **Cycle time** = decision date − submission date (days).
+
+## 7. References used to build the protocol
+
+Used as technical reference only (not as a visual model):
+
+- MADE Laboratory (Fort Worth, TX) testing program with SanMar's Decorator Solutions team: fabric response to inks, pretreatments and curing; screen printing (plastisol, water-based, discharge), **heat tolerance**, DTG and embroidery testing; results feed the decoration recommendations published on product pages (e.g. SanMar *Decoration Spec Sheets* PC330 / DM108: low-cure poly inks, grey/black bleed blockers, avoid hot stacking, cooling stations, placement dimensions).
+- Decorator industry practice for in-house dye-migration screening (press test at 160 °C / 320 °F, 30 s, plasticizer + white Pellon, AATCC Gray Scale for Staining) → test **FX-DM-00** and the interpretation table in Protocols → Rating scales.
+- Fanatics product tiers (Authentic Pro, Premium, Breakaway, Swingman, Replica) and their decoration (sewn-down multi-layer tackle twill, heat-pressed crests, heat-applied twill, screen print, heat-sealed jock tag) → Protocols → Decoration methods.
+- AATCC, ISO 105 and ASTM test methods listed in section 3; CPSIA for lead in coatings.

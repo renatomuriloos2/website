@@ -70,6 +70,7 @@ create table if not exists public.suppliers (
   logo_path     text,
   status        text not null default 'active' check (status in ('active','onboarding','inactive')),
   tier          text not null default 'approved' check (tier in ('strategic','approved','probation')),
+  is_sample     boolean not null default false,  -- rows created by "Load sample data"
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
@@ -278,7 +279,7 @@ returns trigger language plpgsql security definer set search_path = public as $$
 begin
   select supplier_id into new.supplier_id from public.fabrics where id = new.fabric_id;
   if new.supplier_id is null then raise exception 'fabric not found'; end if;
-  if not public.is_staff() then
+  if not public.is_staff() and auth.uid() is not null then
     new.status := 'submitted';
     new.decided_at := null;
     new.decided_by := null;
@@ -286,7 +287,7 @@ begin
     new.overrides := '{}'::jsonb;
     new.created_by := auth.uid();
   end if;
-  new.is_retest := new.parent_lot_id is not null;
+  new.is_retest := new.is_retest or new.parent_lot_id is not null;
   return new;
 end $$;
 drop trigger if exists trg_lots_before_insert on public.lots;

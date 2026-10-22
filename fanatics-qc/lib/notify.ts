@@ -8,11 +8,11 @@ function emailHtml(n: NotificationInput) {
   return `<!doctype html><html><body style="margin:0;background:#f4f5f7;font-family:Arial,sans-serif">
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 12px">
   <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:14px;overflow:hidden">
-    <tr><td style="background:#0C2340;padding:20px 28px;color:#fff;font-weight:700;font-size:20px">Fanatics <span style="color:#E63C2F;font-size:11px;letter-spacing:3px;text-transform:uppercase">Decoration QC Lab</span></td></tr>
+    <tr><td style="background:#09203F;padding:20px 28px;color:#fff;font-weight:700;font-size:20px">Fanatics <span style="color:#E53D2E;font-size:11px;letter-spacing:3px;text-transform:uppercase">Decoration QC Lab</span></td></tr>
     <tr><td style="padding:28px">
-      <h1 style="margin:0 0 8px;font-size:20px;color:#0C2340">${esc(n.title)}</h1>
+      <h1 style="margin:0 0 8px;font-size:20px;color:#09203F">${esc(n.title)}</h1>
       <p style="margin:0 0 24px;color:#4b5060;font-size:14px;line-height:1.5">${esc(n.body)}</p>
-      <a href="${APP_URL}${n.href}" style="background:#E63C2F;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold;font-size:14px">Open in QC Lab</a>
+      <a href="${APP_URL}${n.href}" style="background:#E53D2E;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold;font-size:14px">Open in QC Lab</a>
     </td></tr>
     <tr><td style="padding:16px 28px;background:#f9fafb;color:#8a8f98;font-size:11px">Automated notification · Fanatics Decoration Quality Lab · Do not reply.</td></tr>
   </table></td></tr></table></body></html>`;

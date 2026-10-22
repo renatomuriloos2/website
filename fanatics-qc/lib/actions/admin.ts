@@ -137,3 +137,27 @@ export async function revokeApiKeyAction(id: string) {
   await getRepo().revokeApiKey(ctx, id);
   revalidatePath("/integrations");
 }
+
+export async function loadSampleAction(_prev: FormState): Promise<FormState> {
+  try {
+    await requireUser(["admin"]);
+    const { loadSampleData } = await import("@/lib/sample");
+    const { lots } = await loadSampleData();
+    revalidatePath("/", "layout");
+    return { error: null, ok: `loaded:${lots}` };
+  } catch (err) {
+    return { error: errorMessage(err) };
+  }
+}
+
+export async function removeSampleAction(_prev: FormState): Promise<FormState> {
+  try {
+    await requireUser(["admin"]);
+    const { removeSampleData } = await import("@/lib/sample");
+    await removeSampleData();
+    revalidatePath("/", "layout");
+    return { error: null, ok: "removed" };
+  } catch (err) {
+    return { error: errorMessage(err) };
+  }
+}

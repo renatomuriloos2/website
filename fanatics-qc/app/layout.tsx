@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "QC Lab", statusBarStyle: "black-translucent" },
 };
 
-export const viewport: Viewport = { themeColor: "#0C2340", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#09203F", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, t } = getI18n();

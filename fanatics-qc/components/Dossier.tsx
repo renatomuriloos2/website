@@ -300,8 +300,8 @@ export function PlacementSheet({ garment, locale, approved }: { garment: Garment
       {[{ label: locale === "es" ? "Frente" : "Front", items: front }, { label: locale === "es" ? "Espalda" : "Back", items: back }].map((side) => (
         <figure key={side.label} className="rounded-xl bg-fx-mist/60 p-3">
           <svg viewBox="0 0 240 240" className="mx-auto h-44 w-auto" role="img" aria-label={`${garment} ${side.label}`}>
-            <path d={shirt} fill="#fff" stroke="#0C2340" strokeWidth="2" strokeLinejoin="round" />
-            <path d="M95 8 Q120 30 145 8" fill="none" stroke="#0C2340" strokeWidth="2" />
+            <path d={shirt} fill="#fff" stroke="#09203F" strokeWidth="2" strokeLinejoin="round" />
+            <path d="M95 8 Q120 30 145 8" fill="none" stroke="#09203F" strokeWidth="2" />
             {side.items.map(box)}
           </svg>
           <figcaption className="mt-1 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-500">{side.label}</figcaption>

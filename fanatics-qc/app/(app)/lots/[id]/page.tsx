@@ -114,7 +114,7 @@ export default async function LotPage({ params, searchParams }: { params: { id: 
       </section>
 
       {lot.decisionNotes && (
-        <div className="card flex gap-4 border-l-4 p-5" style={{ borderLeftColor: "#0C2340" }}>
+        <div className="card flex gap-4 border-l-4 p-5" style={{ borderLeftColor: "#09203F" }}>
           <Icon name="shield" className="h-6 w-6 shrink-0 text-fx-red" />
           <div>
             <div className="text-xs font-bold uppercase tracking-wide text-gray-500">

@@ -4,7 +4,7 @@ import { Badge, Card, PageHeader, cx } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { getRepo } from "@/lib/data";
 import { saveRequirementAction } from "@/lib/actions/admin";
-import { DECORATIONS, FIBERS, TEST_MAP, TEST_METHODS } from "@/lib/domain/catalog";
+import { DECORATIONS, FIBERS, PRODUCT_TIERS, TEST_MAP, TEST_METHODS } from "@/lib/domain/catalog";
 import { indexRequirements, specFor } from "@/lib/domain/engine";
 import type { TestCategory } from "@/lib/domain/types";
 import { getI18n } from "@/lib/i18n/server";
@@ -36,6 +36,21 @@ export default async function ProtocolsPage({ searchParams }: { searchParams: { 
 
       {tab === "decorations" && (
         <div className="grid gap-4 lg:grid-cols-2">
+          <Card title={locale === "es" ? "Niveles de producto Fanatics y su decoración" : "Fanatics product tiers and how they are decorated"} className="lg:col-span-2" bodyClass="p-0">
+            <div className="scrollbar-thin overflow-x-auto">
+              <table className="w-full min-w-[560px] text-sm">
+                <tbody className="divide-y divide-fx-line">
+                  {PRODUCT_TIERS.map((p) => (
+                    <tr key={p.tier}>
+                      <td className="px-5 py-2.5 font-bold">{p.tier}</td>
+                      <td className="px-2 py-2.5 text-xs text-gray-500">{p.league}</td>
+                      <td className="px-5 py-2.5 text-gray-700">{p.decoration[locale]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
           {DECORATIONS.map((d) => (
             <Card key={d.code} title={d.name[locale]} subtitle={d.description[locale]}>
               <div className="mb-4 grid grid-cols-3 gap-3 text-center">
@@ -204,6 +219,20 @@ export default async function ProtocolsPage({ searchParams }: { searchParams: { 
               </div>
             </Card>
           ))}
+          <Card title={locale === "es" ? "Interpretación del manchado por migración (escala de grises)" : "Dye-migration staining interpretation (gray scale)"} className="lg:col-span-2">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                ["4 – 5", locale === "es" ? "Migración baja: tintas blancas estándar OK." : "Low migration: standard whites are fine.", "#0E9F6E"],
+                ["3 – 3.5", locale === "es" ? "Usar tintas low-bleed (poly white) y verificar en producción." : "Use low-bleed (poly white) inks and verify in production.", "#E8A317"],
+                ["≤ 2.5", locale === "es" ? "Riesgo alto: base bloqueadora gris/negra + tinta de bajo curado, o no decorar con calor." : "High risk: grey/black dye-blocker underbase + low-cure ink, or avoid heat decoration.", "#DC2626"],
+              ].map(([g, text, c]) => (
+                <div key={g} className="rounded-xl border-l-4 bg-fx-mist p-4" style={{ borderLeftColor: c }}>
+                  <div className="font-display text-2xl font-extrabold">{g}</div>
+                  <div className="text-xs text-gray-600">{text}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
           <Card title={locale === "es" ? "Clasificación de temperatura (escalera de migración)" : "Temperature classification (migration ladder)"} className="lg:col-span-2">
             <div className="grid gap-3 sm:grid-cols-4">
               {[

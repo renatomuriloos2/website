@@ -375,8 +375,8 @@ export const TEST_METHODS: TestMethodDef[] = [
   {
     id: "press_marks",
     code: "FX-PM-02",
-    standards: "Fanatics visual protocol (scorch, glazing, platen marks)",
-    name: L("Press Marks, Glazing & Scorch at Process Temperature", "Marcas de prensa, brillo y quemado a temperatura de proceso"),
+    standards: "Fanatics heat-tolerance protocol (scorch, glazing, platen marks, shrink at press temperature)",
+    name: L("Heat Tolerance — Press Marks, Glazing, Scorch & Shrink", "Tolerancia al calor — marcas de prensa, brillo, quemado y encogimiento"),
     category: "decoration",
     kind: "grade",
     readings: [{ key: "appearance", label: L("Appearance grade", "Grado de apariencia"), min: 4 }],
@@ -385,7 +385,48 @@ export const TEST_METHODS: TestMethodDef[] = [
     spectroCapable: false,
   },
 
+  {
+    id: "dm_quick",
+    code: "FX-DM-00",
+    standards: "In-house dye-migration screen (decorator practice) · AATCC EP2 Gray Scale for Staining",
+    name: L("Dye-migration Quick Screen (press test, 160 °C / 30 s)", "Prueba rápida de migración (prensa, 160 °C / 30 s)"),
+    category: "migration",
+    kind: "grade",
+    readings: [{ key: "staining", label: L("Staining on white Pellon / cotton", "Manchado sobre Pellon / algodón blanco"), min: 4, scale: "staining" }],
+    summary: L(
+      "Fast screening a mill or decorator can run on any heat press before sending samples to the lab: a quarter-size spot of plasticizer (or clear gel) on a 4 × 4 in swatch of the production fabric, covered with white Pellon / cotton, pressed 30 s at 160 °C (320 °F), medium pressure. Interpretation: 4–5 standard whites are fine · 3–3.5 use low-bleed inks and verify in production · ≤ 2.5 high risk: dye-blocker underbase + low-cure ink.",
+      "Prueba rápida que el mill o el decorador puede hacer en cualquier prensa antes de enviar al laboratorio: una gota de plastificante (o gel transparente) sobre un recorte de 10 × 10 cm de la tela de producción, cubierta con Pellon / algodón blanco, prensada 30 s a 160 °C (320 °F), presión media. Interpretación: 4–5 blancos estándar OK · 3–3,5 usar tintas low-bleed y verificar en producción · ≤ 2,5 riesgo alto: base bloqueadora + tinta de bajo curado."
+    ),
+    procedure: [
+      L("Verify the real platen temperature with a surface thermometer (160 °C / 320 °F).", "Verificar la temperatura real de la platina con termómetro de superficie (160 °C / 320 °F)."),
+      L("Place a quarter-size spot of plasticizer / clear gel on the swatch and cover it with white Pellon or cotton.", "Colocar una gota de plastificante / gel transparente sobre el recorte y cubrir con Pellon o algodón blanco."),
+      L("Press 30 s at medium pressure; let cool completely.", "Prensar 30 s a presión media; dejar enfriar por completo."),
+      L("Rate the staining of the white layer with the Gray Scale for Staining; compare with known-good fabrics from previous runs.", "Evaluar el manchado de la capa blanca con la escala de grises de manchado; comparar con telas buenas conocidas de producciones anteriores."),
+    ],
+    spectroCapable: true,
+  },
+
   // ── Decoration performance ──
+  {
+    id: "dtg_pretreat",
+    code: "FX-PT-05",
+    standards: "DTG pretreatment & cure response (decorator practice)",
+    name: L("DTG Pretreatment & Cure Response", "Respuesta al pretratamiento y curado DTG"),
+    category: "decoration",
+    kind: "grade",
+    readings: [
+      { key: "pretreat_mark", label: L("Pretreatment stain / box mark", "Mancha / marca de pretratamiento"), min: 4 },
+      { key: "white_opacity", label: L("White underbase opacity & smoothness", "Opacidad y lisura del blanco base"), min: 3.5 },
+      { key: "cure_change", label: L("Fabric color change after cure", "Cambio de color de la tela tras curado"), min: 4, scale: "change" },
+    ],
+    summary: L("Pretreatment applied at the recommended density, cured at the DTG cure temperature; rates visible pretreatment marks, white ink coverage and fabric shade change.", "Pretratamiento aplicado a la densidad recomendada y curado a la temperatura DTG; evalúa marcas de pretratamiento, cubrimiento del blanco y cambio de tono de la tela."),
+    procedure: [
+      L("Apply pretreatment at the ink maker's density; heat-press to dry.", "Aplicar pretratamiento a la densidad del fabricante de tinta; secar en prensa."),
+      L("Print a white underbase + CMYK target; cure at the specified temperature/time.", "Imprimir base blanca + patrón CMYK; curar a la temperatura/tiempo especificados."),
+      L("Rate pretreatment marks, white smoothness and shade change after cure and after one wash.", "Evaluar marcas de pretratamiento, lisura del blanco y cambio de tono tras curado y tras un lavado."),
+    ],
+    spectroCapable: false,
+  },
   {
     id: "print_adhesion",
     code: "ASTM D3359-B",
@@ -793,6 +834,7 @@ export const DECORATIONS: DecorationDef[] = [
       { testId: "print_wash", critical: true },
       { testId: "cf_crock", critical: true },
       { testId: "dye_migration", critical: true },
+      { testId: "dtg_pretreat", critical: false },
     ],
     bleedFixes: ["pretreatment", "low_cure_ink"],
     description: L("Water-based pigment inkjet printed directly on the garment after pretreatment.", "Inyección de tinta pigmentada base agua directamente sobre la prenda tras pretratamiento."),
@@ -984,6 +1026,16 @@ export interface Placement {
   w: number;
   h: number;
 }
+
+/** Fanatics product tiers and how they are typically decorated (public product descriptions). */
+export const PRODUCT_TIERS: { tier: string; league: string; decoration: Localized }[] = [
+  { tier: "Authentic Pro", league: "NHL", decoration: L("Sewn-down multi-layer tackle twill, 3D embroidered crests, on-ice fabrics", "Tackle twill multicapa cosido, escudos bordados 3D, telas de juego") },
+  { tier: "Premium", league: "NHL", decoration: L("Lighter fit, sewn-down graphics mimicking Authentic Pro", "Corte más liviano, gráficos cosidos que imitan al Authentic Pro") },
+  { tier: "Breakaway", league: "NHL", decoration: L("Soft breathable fabric, heat-pressed lightweight crests", "Tela suave y transpirable, escudos livianos termoaplicados") },
+  { tier: "Swingman", league: "NBA", decoration: L("Heat-applied twill team & player details, heat-applied logo", "Twill termoaplicado de equipo y jugador, logo termoaplicado") },
+  { tier: "Replica", league: "NBA / NFL", decoration: L("Screen-printed graphics, heat-sealed jock tag", "Gráficos serigrafiados, jock tag termosellado") },
+  { tier: "Fan tee / fleece", league: "All", decoration: L("Screen print, DTF / DTG on-demand, embroidery", "Serigrafía, DTF / DTG bajo demanda, bordado") },
+];
 
 export const GARMENTS: Record<GarmentType, Localized> = {
   jersey: L("Jersey (replica / authentic)", "Jersey (réplica / auténtico)"),

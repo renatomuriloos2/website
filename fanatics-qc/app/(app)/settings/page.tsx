@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SampleDataCard } from "@/components/AdminForms";
 import { LocaleSwitch } from "@/components/LocaleSwitch";
 import { PasswordForm } from "@/components/PasswordForm";
 import { Badge, Card, PageHeader } from "@/components/ui";
@@ -34,6 +35,11 @@ export default async function SettingsPage() {
           </div>
           <PasswordForm />
         </Card>
+        {u.role === "admin" && (
+          <Card title={t.settings.sampleData} className="lg:col-span-2">
+            <SampleDataCard />
+          </Card>
+        )}
       </div>
     </div>
   );

@@ -138,7 +138,7 @@ export function LotForm({ fabrics, suppliers, retestOptions, defaults }: { fabri
             const disabled = Boolean(fabric && !d.fibers.includes(fabric.fiber));
             return (
               <label key={d.code} className={cx("flex cursor-pointer items-start gap-3 rounded-xl border border-fx-line p-3 transition has-[:checked]:border-fx-red has-[:checked]:bg-red-50/40", disabled && "cursor-not-allowed opacity-40")}>
-                <input type="checkbox" name="methods" value={d.code} disabled={disabled} className="mt-1 accent-[#E63C2F]" />
+                <input type="checkbox" name="methods" value={d.code} disabled={disabled} className="mt-1 accent-[#E53D2E]" />
                 <Icon name={FAMILY_ICON[d.family]} className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold leading-tight">{d.name[locale]}</span>

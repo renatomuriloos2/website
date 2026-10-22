@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Donut, HBars, StackedBars } from "@/components/Charts";
+import { SampleDataCard } from "@/components/AdminForms";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Avatar, Card, PageHeader, Stat, TONE_HEX, LinkButton } from "@/components/ui";
@@ -45,6 +46,12 @@ export default async function DashboardPage() {
           </>
         }
       />
+
+      {kpi.total === 0 && ctx.user.role === "admin" && (
+        <Card title={t.settings.sampleData} subtitle={t.common.empty}>
+          <SampleDataCard />
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <Stat label={t.dash.lots} value={kpi.total} icon="lots" tone="neutral" hint={`${kpi.pipeline} ${t.dash.pipeline.toLowerCase()}`} />

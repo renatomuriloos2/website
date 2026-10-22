@@ -37,6 +37,7 @@ With no Supabase variables configured, the app runs in **demo mode**: one-click 
 | **Users & access** | Admin creates staff and supplier accounts; suppliers only see their own company (enforced by Postgres RLS). |
 | **Notifications** | In-app + e-mail (Resend): new submission → Fanatics QC; decision / retest → supplier. |
 | **Security** | Mandatory 2FA (TOTP), password policy, RLS, private storage with signed URLs, hash-chained immutable audit log, CSP/HSTS headers, rate limiting, upload validation. See [`docs/SECURITY.md`](docs/SECURITY.md). |
+| **Sample data** | Admin → Settings → *Load sample data* (or from the empty dashboard): 4 mills, 16 fabrics, ~60 lots with per-color results, decisions and retests to explore the full potential. Flagged as sample and removable in one click. |
 | **BI & integrations** | Read-only REST API (JSON/CSV) with API keys, `bi` SQL schema + `bi_reader` role for Power BI, read-only **MCP server** for AI agents. |
 
 ## Stack

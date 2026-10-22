@@ -258,7 +258,7 @@ export function DecisionForm({ lotId, current, suggested, notes, methods }: { lo
               <div className={cx("mt-3 grid gap-2 sm:grid-cols-2", open === m.code ? "" : "hidden")}>
                 {(Object.keys(CONDITIONS) as ConditionCode[]).map((c) => (
                   <label key={c} className="flex items-start gap-2 text-xs">
-                    <input type="checkbox" name={`ovc_${m.code}`} value={c} defaultChecked={(m.override?.conditions ?? m.conditions).includes(c)} className="mt-0.5 accent-[#E63C2F]" />
+                    <input type="checkbox" name={`ovc_${m.code}`} value={c} defaultChecked={(m.override?.conditions ?? m.conditions).includes(c)} className="mt-0.5 accent-[#E53D2E]" />
                     {CONDITIONS[c][locale].replace("{t}", "…")}
                   </label>
                 ))}

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useFormState, useFormStatus } from "react-dom";
-import { createApiKeyAction, createUserAction, revokeApiKeyAction, setUserActiveAction, markNotificationsReadAction } from "@/lib/actions/admin";
+import { createApiKeyAction, createUserAction, loadSampleAction, markNotificationsReadAction, removeSampleAction, revokeApiKeyAction, setUserActiveAction } from "@/lib/actions/admin";
 import { initialState } from "@/lib/actions/state";
 import type { Supplier } from "@/lib/domain/types";
 import { useI18n } from "@/lib/i18n/client";
@@ -106,5 +106,35 @@ export function MarkAllRead({ label }: { label: string }) {
     <button type="button" disabled={pending} onClick={() => start(() => markNotificationsReadAction())} className="btn-ghost">
       <Icon name="check" className="h-4 w-4" /> {label}
     </button>
+  );
+}
+
+export function SampleDataCard() {
+  const { locale } = useI18n();
+  const es = locale === "es";
+  const [loadState, load] = useFormState(loadSampleAction, initialState);
+  const [removeState, remove] = useFormState(removeSampleAction, initialState);
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-600">
+        {es
+          ? "Carga un conjunto de datos de ejemplo (4 mills, 16 telas, ~60 lotes con resultados por color, decisiones y re-tests) para explorar dashboards, tablero y dossiers. Los datos son sintéticos, quedan marcados como ejemplo y se eliminan con un clic."
+          : "Load a sample dataset (4 mills, 16 fabrics, ~60 lots with per-color results, decisions and retests) to explore dashboards, board and dossiers. The data is synthetic, flagged as sample and removable in one click."}
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <form action={load}>
+          <Submit label={es ? "Cargar datos de ejemplo" : "Load sample data"} icon="spark" />
+        </form>
+        <form action={remove} onSubmit={(e) => { if (!confirm(es ? "¿Eliminar todos los datos de ejemplo?" : "Remove all sample data?")) e.preventDefault(); }}>
+          <button className="btn-ghost">
+            <Icon name="x" className="h-4 w-4" />
+            {es ? "Eliminar datos de ejemplo" : "Remove sample data"}
+          </button>
+        </form>
+      </div>
+      {(loadState.error || removeState.error) && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{loadState.error || removeState.error}</p>}
+      {loadState.ok && !removeState.ok && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">✓ {es ? "Lotes cargados" : "Lots loaded"}: {loadState.ok.split(":")[1]}</p>}
+      {removeState.ok && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">✓ {es ? "Datos de ejemplo eliminados" : "Sample data removed"}</p>}
+    </div>
   );
 }

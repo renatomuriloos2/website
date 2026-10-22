@@ -6,11 +6,11 @@ const config: Config = {
     extend: {
       colors: {
         fx: {
-          black: "#071A33",
-          ink: "#0C2340",
+          black: "#061629",
+          ink: "#09203F",
           coal: "#14305A",
           steel: "#22406B",
-          red: "#E63C2F",
+          red: "#E53D2E",
           redDark: "#C42E22",
           mist: "#F4F5F7",
           line: "#E6E7EB",

@@ -301,6 +301,7 @@ export const en = {
     revoke: "Revoke",
     copyNow: "Copy this key now — it will not be shown again:",
     endpoints: "Endpoints",
+    sampleData: "Sample data",
   },
 };
 
@@ -606,6 +607,7 @@ export const es: Dict = {
     revoke: "Revocar",
     copyNow: "Copia esta llave ahora — no se volverá a mostrar:",
     endpoints: "Endpoints",
+    sampleData: "Datos de ejemplo",
   },
 };
 

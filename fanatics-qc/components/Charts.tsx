@@ -53,7 +53,7 @@ export function StackedBars({ data, series, xKey, height = 260 }: { data: Record
   );
 }
 
-export function HBars({ data, color = "#E63C2F", height = 260, unit }: { data: { label: string; value: number }[]; color?: string; height?: number; unit?: string }) {
+export function HBars({ data, color = "#E53D2E", height = 260, unit }: { data: { label: string; value: number }[]; color?: string; height?: number; unit?: string }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} layout="vertical" margin={{ top: 0, right: 24, left: 8, bottom: 0 }} barCategoryGap="30%">
