@@ -394,7 +394,8 @@ create or replace function public.verify_audit_chain()
 returns bigint language plpgsql stable security definer set search_path = public, extensions as $$
 declare r record; prev text := 'GENESIS';
 begin
-  if not public.is_admin() then raise exception 'admin only'; end if;
+  -- App admins, or a database owner session (Supabase SQL Editor / auditor connection).
+  if not (public.is_admin() or (session_user = 'postgres' and auth.uid() is null)) then raise exception 'admin only'; end if;
   for r in select * from public.audit_log order by id loop
     if r.prev_hash <> prev or r.row_hash <> encode(extensions.digest(
       r.prev_hash || '|' || r.at::text || '|' || coalesce(r.actor_id::text, '') || '|' ||
@@ -405,6 +406,9 @@ begin
   end loop;
   return null;
 end $$;
+
+revoke execute on function public.verify_audit_chain() from public, anon;
+grant execute on function public.verify_audit_chain() to authenticated;
 
 -- ─── Row Level Security ─────────────────────────────────────────────────────
 
