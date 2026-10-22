@@ -94,6 +94,10 @@ export const en = {
     weakPassword: "Password does not meet the policy.",
     forgot: "Forgot password?",
     secureNote: "Protected by MFA, row-level security and full audit trail.",
+    modeReal: "Sign in",
+    modeDemo: "Explore demo",
+    modeDemoHint: "Sample data in a sandbox — nothing is saved to the real system.",
+    exitDemo: "Exit demo · go to the real system",
   },
   dash: {
     title: "Quality dashboard",
@@ -400,6 +404,10 @@ export const es: Dict = {
     weakPassword: "La contraseña no cumple la política.",
     forgot: "¿Olvidaste tu contraseña?",
     secureNote: "Protegido con MFA, seguridad a nivel de fila y auditoría completa.",
+    modeReal: "Iniciar sesión",
+    modeDemo: "Explorar demo",
+    modeDemoHint: "Datos de ejemplo en un entorno de prueba — nada se guarda en el sistema real.",
+    exitDemo: "Salir del demo · ir al sistema real",
   },
   dash: {
     title: "Dashboard de calidad",

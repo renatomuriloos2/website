@@ -2,10 +2,10 @@ import { Brand } from "@/components/Brand";
 import { Icon } from "@/components/icons";
 import { LocaleSwitch } from "@/components/LocaleSwitch";
 import { Avatar } from "@/components/ui";
-import { demoSignInAction } from "@/lib/actions/session";
+import { demoSignInAction, enterDemoAction, exitDemoAction } from "@/lib/actions/session";
 import { demoDb } from "@/lib/data/demo";
 import { DECORATIONS } from "@/lib/domain/catalog";
-import { isDemo } from "@/lib/env";
+import { canSwitchMode, isDemo } from "@/lib/env";
 import { getI18n } from "@/lib/i18n/server";
 import { LoginForm } from "./LoginForm";
 
@@ -14,6 +14,7 @@ export const metadata = { title: "Sign in" };
 export default function LoginPage() {
   const { t, locale } = getI18n();
   const demo = isDemo();
+  const switchable = canSwitchMode();
   const db = demo ? demoDb() : null;
   const demoUsers = db
     ? [
@@ -76,7 +77,25 @@ export default function LoginPage() {
             <LocaleSwitch />
           </div>
           <h2 className="font-display text-3xl font-extrabold tracking-tight">{t.auth.title}</h2>
-          <p className="mb-8 mt-1 text-sm text-gray-500">{t.auth.subtitle}</p>
+          <p className="mb-6 mt-1 text-sm text-gray-500">{t.auth.subtitle}</p>
+
+          {switchable && (
+            <div className="mb-6">
+              <div className="grid grid-cols-2 gap-1 rounded-xl bg-fx-mist p-1 text-sm font-semibold">
+                <form action={exitDemoAction}>
+                  <button className={`w-full rounded-lg px-3 py-2.5 transition ${!demo ? "bg-white text-fx-ink shadow" : "text-gray-500 hover:text-fx-ink"}`}>
+                    🔒 {t.auth.modeReal}
+                  </button>
+                </form>
+                <form action={enterDemoAction}>
+                  <button className={`w-full rounded-lg px-3 py-2.5 transition ${demo ? "bg-fx-ink text-white shadow" : "text-gray-500 hover:text-fx-ink"}`}>
+                    ✨ {t.auth.modeDemo}
+                  </button>
+                </form>
+              </div>
+              {demo && <p className="mt-2 text-xs text-gray-500">{t.auth.modeDemoHint}</p>}
+            </div>
+          )}
 
           {demo ? (
             <div>

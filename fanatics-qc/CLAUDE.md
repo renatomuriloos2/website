@@ -41,6 +41,9 @@ Before every commit: `npm run typecheck && npm run lint && npm test && npm run b
   synthetic data from `lib/demo/seed.ts`, one-click logins via the `fx_demo_uid` cookie. Data
   resets on cold start. The public demo link runs this way.
 - **Supabase mode**: real auth (MFA mandatory when `MFA_REQUIRED=true`), RLS, storage.
+- **Mode toggle**: when Supabase is configured, the login screen offers *Sign in* (real) or *Explore demo*
+  (cookie `fx_mode=demo`, in-memory data, never touches the database); a banner offers *Exit demo*.
+  Disable with `DEMO_SWITCH=false`. Logic: `lib/env.ts` (`isDemo`, `canSwitchMode`) and `middleware.ts`.
 
 Both implement the same `Repo` interface (`lib/data/repo.ts`): `lib/data/demo.ts` and
 `lib/data/supabase.ts`. **Any new data operation must be added to the interface and to both
@@ -91,8 +94,8 @@ docs/                SETUP(_ES), SECURITY, PROTOCOLS, POWER_BI, MCP, HANDOFF
 ## Current deployment
 
 - GitHub: `djherreralopez95-cmyk/fanatics-qc-lab` (main).
-- Vercel: `https://fanatics-qc-lab.vercel.app` — **demo mode** (no env vars). Keep it as the public demo;
-  create a second Vercel project (e.g. `fanatics-qc-app`) for the Supabase-backed version.
+- Vercel: `https://fanatics-qc-lab.vercel.app`. With the Supabase env vars it runs the real system and still
+  offers the demo through the login toggle.
 - Supabase project ref: `sncoqimwajlzxqikcghj` (owner: Digna's account). Setup steps: `docs/SETUP.md` §3.
 
 ## Next steps (backlog)

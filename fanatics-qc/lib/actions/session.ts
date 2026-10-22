@@ -3,7 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { isDemo } from "@/lib/env";
+import { MODE_COOKIE, canSwitchMode, isDemo } from "@/lib/env";
 import { DEMO_COOKIE, getSessionUser } from "@/lib/auth";
 import { demoDb } from "@/lib/data/demo";
 import { LOCALE_COOKIE } from "@/lib/i18n/server";
@@ -16,6 +16,20 @@ const cookieOpts = { httpOnly: true, sameSite: "lax" as const, secure: process.e
 
 export async function setLocaleAction(locale: string) {
   cookies().set(LOCALE_COOKIE, locale === "es" ? "es" : "en", { ...cookieOpts, httpOnly: false, maxAge: 60 * 60 * 24 * 365 });
+}
+
+/** Login screen toggle: "Explore demo" (in-memory sample data) — never touches real data. */
+export async function enterDemoAction() {
+  if (!canSwitchMode()) redirect("/login");
+  cookies().set(MODE_COOKIE, "demo", { ...cookieOpts, maxAge: 60 * 60 * 8 });
+  redirect("/login");
+}
+
+/** Back to the real system (Supabase). */
+export async function exitDemoAction() {
+  cookies().delete(MODE_COOKIE);
+  cookies().delete(DEMO_COOKIE);
+  redirect("/login");
 }
 
 export async function demoSignInAction(formData: FormData) {

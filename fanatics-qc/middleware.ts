@@ -4,8 +4,11 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 const PUBLIC = ["/login", "/auth", "/api/v1", "/api/health", "/manifest.webmanifest", "/icon"];
 const MFA_PATHS = ["/mfa"];
 
-function isDemo() {
-  return process.env.DEMO_MODE === "true" || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+function isDemo(request: NextRequest) {
+  const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  if (process.env.DEMO_MODE === "true" || !configured) return true;
+  // Visitor chose "Explore demo" on the login screen (unless disabled with DEMO_SWITCH=false).
+  return process.env.DEMO_SWITCH !== "false" && request.cookies.get("fx_mode")?.value === "demo";
 }
 
 export async function middleware(request: NextRequest) {
@@ -18,7 +21,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   };
 
-  if (isDemo()) {
+  if (isDemo(request)) {
     const signedIn = Boolean(request.cookies.get("fx_demo_uid")?.value);
     if (!signedIn && !isPublic) return to("/login");
     if (signedIn && (pathname === "/" || pathname === "/login")) return to("/dashboard");

@@ -5,8 +5,8 @@ import { Sidebar, type NavSection } from "@/components/Sidebar";
 import { Avatar } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { getRepo, isStaff } from "@/lib/data";
-import { signOutAction } from "@/lib/actions/session";
-import { isDemo } from "@/lib/env";
+import { exitDemoAction, signOutAction } from "@/lib/actions/session";
+import { canSwitchMode, isDemo } from "@/lib/env";
 import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -73,7 +73,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </div>
       <div className="lg:pl-64">
         {isDemo() && (
-          <div className="no-print bg-gradient-to-r from-amber-400 to-amber-300 px-4 py-1.5 text-center text-xs font-semibold text-amber-950">{t.app.demo}</div>
+          <div className="no-print flex flex-wrap items-center justify-center gap-x-4 gap-y-1 bg-gradient-to-r from-amber-400 to-amber-300 px-4 py-1.5 text-center text-xs font-semibold text-amber-950">
+            <span>{t.app.demo}</span>
+            {canSwitchMode() && (
+              <form action={exitDemoAction}>
+                <button className="rounded-md bg-amber-950 px-2.5 py-0.5 text-[11px] font-bold text-amber-50 hover:bg-black">{t.auth.exitDemo} →</button>
+              </form>
+            )}
+          </div>
         )}
         <header className="no-print sticky top-0 z-20 hidden items-center justify-end gap-3 border-b border-fx-line bg-[#f4f5f7]/85 px-8 py-3 backdrop-blur lg:flex">
           <LocaleSwitch />
