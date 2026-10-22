@@ -1,7 +1,7 @@
 # Handoff to Fanatics IT
 
-The MVP is built so that Fanatics can take full ownership without depending on the original
-developer. You (the integrator) can stay as a **temporary admin** and then step out.
+The MVP is built so that Fanatics IT can take full ownership at any time. The current project
+owner can stay as a **temporary admin** during the transition and then step out.
 
 ## 1. Transfer the accounts
 
@@ -18,7 +18,7 @@ developer. You (the integrator) can stay as a **temporary admin** and then step 
 1. Supabase → API → **rotate the service-role key** (and JWT secret if required by policy) → update Vercel.
 2. Revoke all API keys in **BI & API** and issue new ones.
 3. Change the `bi_reader` password.
-4. Disable the integrator's user in **Users & access**.
+4. Disable any temporary admin users in **Users & access**.
 5. Run `select verify_audit_chain();` and export the audit log as a baseline.
 
 ## 3. What Fanatics IT gets

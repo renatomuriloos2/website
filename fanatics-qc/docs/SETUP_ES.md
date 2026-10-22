@@ -37,19 +37,8 @@ Gabriel – técnico Fanatics, usuarios de los mills). Todos los resultados son 
 
 1. Regístrate en https://github.com/signup con el correo nuevo (p. ej. usuario `fanatics-qclab`).
 2. Activa 2FA: Settings → Password and authentication → Two-factor authentication.
-3. Crea un repositorio **privado** vacío `fanatics-qc-lab` (sin README).
-4. Sube **solo la carpeta `fanatics-qc`** del repositorio actual, con su historial (en tu
-   computadora, dentro del repo `website`):
-
-   ```bash
-   git fetch origin claude/fanatics-quality-control-mvp-nxdtll
-   git checkout claude/fanatics-quality-control-mvp-nxdtll
-   git subtree split --prefix=fanatics-qc -b fanatics-qc-export
-   git push https://github.com/fanatics-qclab/fanatics-qc-lab.git fanatics-qc-export:main
-   ```
-
-   GitHub pedirá credenciales: usa el usuario nuevo y un *Personal Access Token*
-   (Settings → Developer settings → Tokens) con permiso `repo`.
+3. El código vive en el repositorio privado `fanatics-qc-lab`. Para trabajar en local: `git clone https://github.com/<owner>/fanatics-qc-lab.git`.
+4. Agrega colaboradores solo cuando sea necesario (Settings → Collaborators).
 5. Protege `main`: Settings → Branches → Add rule → "Require a pull request before merging".
 
 ## 3. Supabase (base de datos, login, archivos)
