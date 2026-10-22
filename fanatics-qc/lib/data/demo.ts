@@ -2,7 +2,8 @@ import "server-only";
 import { createHash, randomBytes, randomUUID } from "crypto";
 import { buildDemoDb, type DemoDb } from "@/lib/demo/seed";
 import { swatchSvg } from "@/lib/demo/art";
-import type { AppUser, Evidence, Lot, LotEvent, LotStatus } from "@/lib/domain/types";
+import { capaTransition } from "@/lib/domain/capa";
+import type { AppUser, Capa, Evidence, GarmentTrial, Lot, LotEvent, LotStatus } from "@/lib/domain/types";
 import {
   assertAdmin,
   assertStaff,
@@ -125,6 +126,8 @@ export const demoRepo: Repo = {
       results: db.results.filter((r) => r.lotId === id),
       evidence: db.evidence.filter((e) => e.lotId === id),
       events: db.events.filter((e) => e.lotId === id).sort((a, b) => a.at.localeCompare(b.at)),
+      trials: db.trials.filter((t) => t.lotId === id),
+      capas: db.capas.filter((c) => c.lotId === id),
     };
   },
   async createLot(ctx, input) {
@@ -220,6 +223,106 @@ export const demoRepo: Repo = {
     event(ctx, lot, "evidence", null, null, file.name);
     audit(ctx, "evidence.upload", "lot", lot.ref, `${file.name} · sha256 ${file.sha256.slice(0, 12)}…`);
     return ev;
+  },
+
+  async listGarmentTrials(ctx) {
+    const db = demoDb();
+    if (isStaff(ctx.user)) return db.trials;
+    const ids = new Set(db.lots.filter((l) => l.supplierId === ctx.user.supplierId).map((l) => l.id));
+    return db.trials.filter((t) => ids.has(t.lotId));
+  },
+  async addGarmentTrial(ctx, lotId, input, before, after) {
+    const lot = lotFor(ctx, lotId);
+    const db = demoDb();
+    const store = async (file: UploadFile | null, kind: "garment_before" | "garment_after") => (file ? (await demoRepo.addEvidence(ctx, lotId, kind, null, file)).id : null);
+    const trial: GarmentTrial = {
+      ...input,
+      id: randomUUID(),
+      lotId,
+      beforeEvidenceId: await store(before, "garment_before"),
+      afterEvidenceId: await store(after, "garment_after"),
+      createdBy: ctx.user.id,
+      createdAt: now(),
+    };
+    db.trials.push(trial);
+    lot.updatedAt = now();
+    event(ctx, lot, "result", null, null, `garment_trial:${input.method}`);
+    audit(ctx, "garment_trial.create", "lot", lot.ref, `${input.method} · ${input.washCycles} washes · appearance ${input.appearance}`);
+    return trial;
+  },
+  async deleteGarmentTrial(ctx, id) {
+    const db = demoDb();
+    const t = db.trials.find((x) => x.id === id);
+    if (!t) return;
+    const lot = lotFor(ctx, t.lotId);
+    if (!isStaff(ctx.user) && ["approved", "approved_concession", "rejected"].includes(lot.status)) throw new ForbiddenError();
+    db.trials = db.trials.filter((x) => x.id !== id);
+    audit(ctx, "garment_trial.delete", "lot", lot.ref, t.method);
+  },
+
+  async listCapas(ctx) {
+    const all = demoDb().capas;
+    return (isStaff(ctx.user) ? all : all.filter((c) => c.supplierId === ctx.user.supplierId)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+  async getCapa(ctx, id) {
+    const c = demoDb().capas.find((x) => x.id === id) ?? null;
+    if (c) assertSupplierScope(ctx, c.supplierId);
+    return c;
+  },
+  async openCapa(ctx, lotId, problem, dueDate) {
+    assertStaff(ctx);
+    const db = demoDb();
+    const lot = lotFor(ctx, lotId);
+    const existing = db.capas.find((c) => c.lotId === lotId && c.status !== "closed");
+    if (existing) return existing;
+    const capa: Capa = {
+      id: randomUUID(),
+      ref: `CAPA-${new Date().getFullYear()}-${String(db.capas.length + 1).padStart(4, "0")}`,
+      lotId,
+      supplierId: lot.supplierId,
+      status: "open",
+      problem,
+      rootCause: "",
+      containment: "",
+      correctiveAction: "",
+      preventiveAction: "",
+      dueDate,
+      supplierOwner: "",
+      reviewNotes: "",
+      retestLotId: null,
+      createdAt: now(),
+      updatedAt: now(),
+      submittedAt: null,
+      closedAt: null,
+    };
+    db.capas.push(capa);
+    audit(ctx, "capa.open", "capa", capa.ref, lot.ref);
+    return capa;
+  },
+  async updateCapa(ctx, id, action) {
+    const c = demoDb().capas.find((x) => x.id === id);
+    if (!c) throw new Error("CAPA not found");
+    assertSupplierScope(ctx, c.supplierId);
+    Object.assign(c, capaTransition(c, action, isStaff(ctx.user)));
+    audit(ctx, `capa.${action.type}`, "capa", c.ref, c.status);
+    return c;
+  },
+
+  async savePushSubscription(ctx, sub) {
+    const db = demoDb();
+    db.pushSubs = db.pushSubs.filter((x) => x.endpoint !== sub.endpoint);
+    db.pushSubs.push({ ...sub, userId: ctx.user.id });
+  },
+  async removePushSubscription(ctx, endpoint) {
+    const db = demoDb();
+    db.pushSubs = db.pushSubs.filter((x) => !(x.endpoint === endpoint && x.userId === ctx.user.id));
+  },
+  async pushSubscriptions(userIds) {
+    return demoDb().pushSubs.filter((x) => userIds.includes(x.userId));
+  },
+  async dropPushSubscription(endpoint) {
+    const db = demoDb();
+    db.pushSubs = db.pushSubs.filter((x) => x.endpoint !== endpoint);
   },
 
   async listRequirements() {

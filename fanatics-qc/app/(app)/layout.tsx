@@ -15,11 +15,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const ctx = await requireUser();
   const { t } = getI18n();
   const repo = getRepo();
-  const [notifs, lots, suppliers] = await Promise.all([repo.listNotifications(ctx), repo.listLots(ctx), repo.listSuppliers(ctx)]);
+  const [notifs, lots, suppliers, capas] = await Promise.all([repo.listNotifications(ctx), repo.listLots(ctx), repo.listSuppliers(ctx), repo.listCapas(ctx)]);
   const unread = notifs.filter((n) => !n.readAt).length;
   const staff = isStaff(ctx.user);
   const admin = ctx.user.role === "admin";
   const queue = lots.filter((l) => l.status === "submitted").length;
+  // Staff: CAPAs waiting for review; suppliers: CAPAs waiting for their answer.
+  const capaBadge = capas.filter((c) => (staff ? c.status === "submitted" : c.status === "open" || c.status === "returned")).length;
   const mySupplier = ctx.user.supplierId ? suppliers.find((s) => s.id === ctx.user.supplierId) : null;
 
   const sections: NavSection[] = [
@@ -29,6 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { href: "/dashboard", label: t.nav.dashboard, icon: "dashboard" },
         { href: "/board", label: t.nav.board, icon: "board", badge: staff ? queue : undefined },
         { href: "/lots", label: t.nav.lots, icon: "lots" },
+        { href: "/capa", label: "CAPA", icon: "alert", badge: capaBadge || undefined },
         { href: "/fabrics", label: t.nav.fabrics, icon: "fabric" },
         ...(staff ? [{ href: "/suppliers", label: t.nav.suppliers, icon: "supplier" }] : []),
       ],

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BaseTable, ColorDot, ColorMatrix, EvidenceStrip, FiberNote, LadderCard, MethodCard, PlacementSheet, ResultBlock } from "@/components/Dossier";
+import { CapaBadge } from "@/components/CapaBadge";
+import { BaseTable, ColorDot, ColorMatrix, EvidenceStrip, FiberNote, GarmentTrialCard, LadderCard, MethodCard, PlacementSheet, ResultBlock } from "@/components/Dossier";
+import { DeleteTrialButton, GarmentTrialForm, OpenCapaButton } from "@/components/QualityForms";
 import { Icon } from "@/components/icons";
 import { DecisionForm, DeleteResultButton, EvidenceUpload, ResultForm } from "@/components/LotForms";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -20,9 +22,9 @@ export default async function LotPage({ params, searchParams }: { params: { id: 
   const repo = getRepo();
   const bundle = await repo.getLotBundle(ctx, params.id).catch(() => null);
   if (!bundle) notFound();
-  const { lot, fabric, supplier, results, evidence, events } = bundle;
+  const { lot, fabric, supplier, results, evidence, events, trials, capas } = bundle;
   const reqs = indexRequirements(await repo.listRequirements(ctx));
-  const { overall: ev, perColor } = evaluateLotColors(fabric.fiber, lot, results, reqs);
+  const { overall: ev, perColor } = evaluateLotColors(fabric.fiber, lot, results, reqs, trials);
   const staff = isStaff(ctx.user);
   const decided = ["approved", "approved_concession", "rejected"].includes(lot.status);
   const canEdit = staff || !decided;
@@ -32,7 +34,7 @@ export default async function LotPage({ params, searchParams }: { params: { id: 
   const sortedResults = [...results].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const ladder = sortedResults.find((r) => r.testId === "dye_migration");
   const others = ev.methods.filter((m) => !lot.methods.includes(m.code) && m.verdict !== "not_applicable" && m.verdict !== "pending");
-  const looseEvidence = evidence.filter((e) => !e.resultId);
+  const looseEvidence = evidence.filter((e) => !e.resultId && e.kind !== "garment_before" && e.kind !== "garment_after");
 
   return (
     <div className="space-y-6">
@@ -135,6 +137,29 @@ export default async function LotPage({ params, searchParams }: { params: { id: 
         </Card>
       )}
 
+      {(capas.length > 0 || (staff && (lot.status === "rejected" || lot.status === "retest"))) && (
+        <div className="card flex flex-col gap-3 border-l-4 p-5 sm:flex-row sm:items-center sm:justify-between" style={{ borderLeftColor: "#E8A317" }}>
+          <div className="flex items-start gap-3">
+            <Icon name="alert" className="mt-0.5 h-6 w-6 shrink-0 text-amber-500" />
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wide text-gray-500">CAPA · {locale === "es" ? "acción correctiva y preventiva" : "corrective & preventive action"}</div>
+              {capas.length ? (
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  {capas.map((c) => (
+                    <Link key={c.id} href={`/capa/${c.id}`} className="inline-flex items-center gap-2 font-bold hover:text-fx-red">
+                      {c.ref} <CapaBadge capa={c} locale={locale} />
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-1 text-sm text-gray-600">{locale === "es" ? "No hay CAPA abierta para este lote." : "No CAPA opened for this lot yet."}</p>
+              )}
+            </div>
+          </div>
+          {staff && !capas.some((c) => c.status !== "closed") && (lot.status === "rejected" || lot.status === "retest") && <OpenCapaButton lotId={lot.id} label={locale === "es" ? "Abrir CAPA" : "Open CAPA"} />}
+        </div>
+      )}
+
       {/* Decoration readiness */}
       <Card title={t.lots.decorationReadiness} subtitle={`${FIBER_MAP[fabric.fiber].name[locale]} · ${lot.methods.length} ${t.lots.methods.toLowerCase()}`}>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -235,6 +260,26 @@ export default async function LotPage({ params, searchParams }: { params: { id: 
           </Card>
         </div>
       </div>
+
+      <Card
+        title={locale === "es" ? `Prueba de prenda terminada (lavado) · ${trials.length}` : `Finished-garment wash trial · ${trials.length}`}
+        subtitle={locale === "es" ? "Prenda decorada lavada N ciclos, con fotos antes / después. Una falla baja el veredicto del método." : "Decorated garment washed N cycles, with before / after photos. A failure downgrades the method verdict."}
+      >
+        {trials.length === 0 && <p className="mb-4 text-sm text-gray-400">{locale === "es" ? "Aún no hay pruebas de prenda." : "No garment trials yet."}</p>}
+        <div className="grid gap-4 xl:grid-cols-2">
+          {trials.map((tr) => (
+            <GarmentTrialCard key={tr.id} trial={tr} evidence={evidence} color={lot.colors.find((c) => c.id === tr.colorId)} locale={locale} actions={canEdit ? <DeleteTrialButton lotId={lot.id} id={tr.id} /> : null} />
+          ))}
+        </div>
+        {canEdit && (
+          <details className="no-print mt-5 rounded-xl border border-fx-line p-4" open={trials.length === 0}>
+            <summary className="cursor-pointer text-sm font-bold">+ {locale === "es" ? "Registrar prueba de prenda" : "Add garment trial"}</summary>
+            <div className="mt-4">
+              <GarmentTrialForm lotId={lot.id} methods={lot.methods} colors={lot.colors} />
+            </div>
+          </details>
+        )}
+      </Card>
 
       <Card title={t.lots.placements} subtitle={GARMENTS[lot.garmentType][locale]}>
         <PlacementSheet garment={lot.garmentType} locale={locale} approved={lot.status === "approved" || lot.status === "approved_concession"} />

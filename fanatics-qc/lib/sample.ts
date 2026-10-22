@@ -80,6 +80,24 @@ export async function loadSampleData(): Promise<{ lots: number }> {
   const events = sample.events.map((e) => ({ lot_id: lotId.get(e.lotId), at: e.at, actor_name: e.actor, type: e.type, from_status: e.from, to_status: e.to, message: e.message }));
   for (let i = 0; i < events.length; i += 500) must(await admin.from("lot_events").insert(events.slice(i, i + 500)));
 
+  const capas = sample.capas.map((c) => ({
+    lot_id: lotId.get(c.lotId),
+    status: c.status,
+    problem: c.problem,
+    root_cause: c.rootCause,
+    containment: c.containment,
+    corrective_action: c.correctiveAction,
+    preventive_action: c.preventiveAction,
+    due_date: c.dueDate,
+    supplier_owner: c.supplierOwner,
+    review_notes: c.reviewNotes,
+    retest_lot_id: c.retestLotId ? lotId.get(c.retestLotId) ?? null : null,
+    created_at: c.createdAt,
+    submitted_at: c.submittedAt,
+    closed_at: c.closedAt,
+  }));
+  if (capas.length) must(await admin.from("capas").insert(capas));
+
   return { lots: lotId.size };
 }
 
@@ -87,7 +105,7 @@ export async function removeSampleData(): Promise<void> {
   if (isDemo()) {
     const db = demoDb();
     const staff = db.users.filter((u) => u.role !== "supplier");
-    Object.assign(db, { suppliers: [], fabrics: [], lots: [], results: [], evidence: [], events: [], notifications: [], users: staff });
+    Object.assign(db, { suppliers: [], fabrics: [], lots: [], results: [], evidence: [], events: [], notifications: [], trials: [], capas: [], users: staff });
     return;
   }
   const admin = createAdminClient();

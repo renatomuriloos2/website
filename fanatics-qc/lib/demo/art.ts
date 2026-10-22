@@ -44,3 +44,15 @@ export function specimenSvg(hex: string, grade: number, label: string): string {
   const tint = shade(hex, 120);
   return enc(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220"><defs><radialGradient id="v" cx=".4" cy=".3" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient></defs><rect width="320" height="220" fill="${hex}"/><rect x="95" y="45" width="130" height="130" rx="4" fill="#fbfbf8"/><rect x="95" y="45" width="130" height="130" rx="4" fill="${tint}" opacity="${(bleed * 0.85).toFixed(2)}"/><rect width="320" height="220" fill="url(#v)"/><rect x="10" y="190" width="300" height="22" rx="4" fill="#000" opacity=".55"/><text x="18" y="205" font-family="Arial" font-size="12" fill="#fff">${label}</text></svg>`);
 }
+
+/** Decorated garment photo for wash trials: after washing, the print shows cracks / fading by grade. */
+export function garmentSvg(hex: string, label: string, washed: boolean, grade: number, printHex = "#FBFBF8"): string {
+  const damage = washed ? Math.max(0, Math.min(1, (5 - grade) / 3)) : 0;
+  const cracks = Array.from({ length: Math.round(damage * 14) }, (_, i) => {
+    const x = 120 + ((i * 37) % 90);
+    const y = 92 + ((i * 53) % 70);
+    return `<path d="M${x} ${y} l${6 + (i % 5)} ${8 - (i % 7)} l${5 - (i % 4)} ${7 + (i % 3)}" stroke="${hex}" stroke-width="1.6" fill="none" opacity=".8"/>`;
+  }).join("");
+  const fade = washed ? (0.15 + damage * 0.45).toFixed(2) : "0";
+  return enc(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240"><rect width="320" height="240" fill="#EEF0F3"/><path d="M95 30 L135 18 Q160 34 185 18 L225 30 L275 70 L250 102 L230 90 L230 222 L90 222 L90 90 L70 102 L45 70 Z" fill="${hex}" stroke="#00000033" stroke-width="2"/><path d="M135 18 Q160 40 185 18" fill="none" stroke="#00000044" stroke-width="2"/><g><rect x="118" y="88" width="84" height="80" rx="4" fill="${printHex}"/><text x="160" y="140" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="44" fill="${hex}">23</text><rect x="118" y="88" width="84" height="80" rx="4" fill="${hex}" opacity="${fade}"/>${cracks}</g><rect x="8" y="212" width="304" height="22" rx="4" fill="#000" opacity=".55"/><text x="16" y="227" font-family="Arial" font-size="11" fill="#fff">${washed ? "AFTER" : "BEFORE"} · ${label}</text></svg>`);
+}

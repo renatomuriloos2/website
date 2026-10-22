@@ -3,6 +3,8 @@ import { createHash, randomBytes, randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type {
+  Capa,
+  GarmentTrial,
   AppUser,
   Evidence,
   Fabric,
@@ -13,6 +15,7 @@ import type {
   Supplier,
   TestResult,
 } from "@/lib/domain/types";
+import { capaTransition } from "@/lib/domain/capa";
 import { assertAdmin, assertStaff, assertSupplierScope, ForbiddenError, isStaff, type Ctx, type Repo, type UploadFile } from "./repo";
 
 type Row = Record<string, any>;
@@ -146,6 +149,56 @@ async function logEvent(ctx: Ctx, lotId: string, type: LotEvent["type"], from: L
   await createClient().from("lot_events").insert({ lot_id: lotId, actor_id: ctx.user.id, actor_name: ctx.user.fullName, type, from_status: from, to_status: to, message });
 }
 
+const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+
+const mapTrial = (r: Row): GarmentTrial => ({
+  id: r.id,
+  lotId: r.lot_id,
+  colorId: r.color_id,
+  method: r.method,
+  placement: r.placement,
+  washCycles: r.wash_cycles,
+  washProcedure: r.wash_procedure,
+  appearance: Number(r.appearance),
+  cracking: num(r.cracking),
+  peeling: num(r.peeling),
+  fading: num(r.fading),
+  shrinkagePct: num(r.shrinkage_pct),
+  beforeEvidenceId: r.before_evidence_id,
+  afterEvidenceId: r.after_evidence_id,
+  notes: r.notes,
+  createdBy: r.created_by,
+  createdAt: r.created_at,
+});
+
+const mapCapa = (r: Row): Capa => ({
+  id: r.id,
+  ref: r.ref,
+  lotId: r.lot_id,
+  supplierId: r.supplier_id,
+  status: r.status,
+  problem: r.problem,
+  rootCause: r.root_cause,
+  containment: r.containment,
+  correctiveAction: r.corrective_action,
+  preventiveAction: r.preventive_action,
+  dueDate: r.due_date,
+  supplierOwner: r.supplier_owner,
+  reviewNotes: r.review_notes,
+  retestLotId: r.retest_lot_id,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+  submittedAt: r.submitted_at,
+  closedAt: r.closed_at,
+});
+
+const capaRow = (c: Partial<Capa>): Row => {
+  const map: Record<string, string> = { status: "status", rootCause: "root_cause", containment: "containment", correctiveAction: "corrective_action", preventiveAction: "preventive_action", supplierOwner: "supplier_owner", reviewNotes: "review_notes", retestLotId: "retest_lot_id", submittedAt: "submitted_at", closedAt: "closed_at" };
+  const row: Row = {};
+  for (const [k, v] of Object.entries(c)) if (map[k]) row[map[k]] = v;
+  return row;
+};
+
 export const supabaseRepo: Repo = {
   mode: "supabase",
 
@@ -234,12 +287,14 @@ export const supabaseRepo: Repo = {
     const lotRow = check(await sb.from("lots").select("*").eq("id", id).maybeSingle());
     if (!lotRow) return null;
     assertSupplierScope(ctx, lotRow.supplier_id);
-    const [fab, sup, res, ev, evt] = await Promise.all([
+    const [fab, sup, res, ev, evt, tri, cap] = await Promise.all([
       sb.from("fabrics").select("*").eq("id", lotRow.fabric_id).single(),
       sb.from("suppliers").select("*").eq("id", lotRow.supplier_id).single(),
       sb.from("test_results").select("*").eq("lot_id", id).order("created_at"),
       sb.from("evidence").select("*").eq("lot_id", id).order("created_at"),
       sb.from("lot_events").select("*").eq("lot_id", id).order("at"),
+      sb.from("garment_trials").select("*").eq("lot_id", id).order("created_at"),
+      sb.from("capas").select("*").eq("lot_id", id).order("created_at"),
     ]);
     const evRows = check(ev) as Row[];
     const evidenceUrls = await signMany("evidence", [...evRows.map((r) => r.storage_path), check(fab).photo_path]);
@@ -265,6 +320,8 @@ export const supabaseRepo: Repo = {
         })
       ),
       events: (check(evt) as Row[]).map(mapEvent),
+      trials: (check(tri) as Row[]).map(mapTrial),
+      capas: (check(cap) as Row[]).map(mapCapa),
     };
   },
   async createLot(ctx, input) {
@@ -363,6 +420,82 @@ export const supabaseRepo: Repo = {
     await logEvent(ctx, lotId, "evidence", null, null, file.name);
     const urls = await signMany("evidence", [path]);
     return { id: r.id, lotId, resultId, kind, name: file.name, mime: file.mime, size: file.size, sha256: file.sha256, url: urls.get(path) ?? "", uploadedBy: ctx.user.fullName, createdAt: r.created_at };
+  },
+
+  async listGarmentTrials() {
+    return check(await createClient().from("garment_trials").select("*")).map(mapTrial);
+  },
+  async addGarmentTrial(ctx, lotId, input, before, after) {
+    const b = before ? await supabaseRepo.addEvidence(ctx, lotId, "garment_before", null, before) : null;
+    const a = after ? await supabaseRepo.addEvidence(ctx, lotId, "garment_after", null, after) : null;
+    const row = check(
+      await createClient()
+        .from("garment_trials")
+        .insert({
+          lot_id: lotId,
+          color_id: input.colorId,
+          method: input.method,
+          placement: input.placement,
+          wash_cycles: input.washCycles,
+          wash_procedure: input.washProcedure,
+          appearance: input.appearance,
+          cracking: input.cracking,
+          peeling: input.peeling,
+          fading: input.fading,
+          shrinkage_pct: input.shrinkagePct,
+          before_evidence_id: b?.id ?? null,
+          after_evidence_id: a?.id ?? null,
+          notes: input.notes,
+        })
+        .select("*")
+        .single()
+    );
+    await logEvent(ctx, lotId, "result", null, null, `garment_trial:${input.method}`);
+    return mapTrial(row);
+  },
+  async deleteGarmentTrial(_ctx, id) {
+    const { error, count } = await createClient().from("garment_trials").delete({ count: "exact" }).eq("id", id);
+    if (error) throw new Error(error.message);
+    if (!count) throw new ForbiddenError();
+  },
+
+  async listCapas() {
+    return check(await createClient().from("capas").select("*").order("created_at", { ascending: false })).map(mapCapa);
+  },
+  async getCapa(_ctx, id) {
+    const r = check(await createClient().from("capas").select("*").eq("id", id).maybeSingle());
+    return r ? mapCapa(r) : null;
+  },
+  async openCapa(ctx, lotId, problem, dueDate) {
+    assertStaff(ctx);
+    const sb = createClient();
+    const existing = check(await sb.from("capas").select("*").eq("lot_id", lotId).neq("status", "closed").maybeSingle());
+    if (existing) return mapCapa(existing);
+    return mapCapa(check(await sb.from("capas").insert({ lot_id: lotId, problem, due_date: dueDate }).select("*").single()));
+  },
+  async updateCapa(ctx, id, action) {
+    const current = await supabaseRepo.getCapa(ctx, id);
+    if (!current) throw new Error("CAPA not found");
+    assertSupplierScope(ctx, current.supplierId);
+    const patch = capaRow(capaTransition(current, action, isStaff(ctx.user)));
+    // Linking the retest lot is a system step (the supplier may not edit an accepted CAPA).
+    const client = action.type === "link_retest" ? createAdminClient() : createClient();
+    return mapCapa(check(await client.from("capas").update(patch).eq("id", id).select("*").single()));
+  },
+
+  async savePushSubscription(ctx, sub, userAgent) {
+    check(await createClient().from("push_subscriptions").upsert({ user_id: ctx.user.id, endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth, user_agent: userAgent.slice(0, 200) }, { onConflict: "endpoint" }).select("id"));
+  },
+  async removePushSubscription(_ctx, endpoint) {
+    await createClient().from("push_subscriptions").delete().eq("endpoint", endpoint);
+  },
+  async pushSubscriptions(userIds) {
+    if (!userIds.length) return [];
+    const rows = check(await createAdminClient().from("push_subscriptions").select("user_id, endpoint, p256dh, auth").in("user_id", userIds));
+    return rows.map((r: Row) => ({ userId: r.user_id, endpoint: r.endpoint, p256dh: r.p256dh, auth: r.auth }));
+  },
+  async dropPushSubscription(endpoint) {
+    await createAdminClient().from("push_subscriptions").delete().eq("endpoint", endpoint);
   },
 
   async listRequirements() {

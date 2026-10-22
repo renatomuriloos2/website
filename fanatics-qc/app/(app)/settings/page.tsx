@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SampleDataCard } from "@/components/AdminForms";
+import { AppSetup } from "@/components/AppSetup";
 import { LocaleSwitch } from "@/components/LocaleSwitch";
 import { PasswordForm } from "@/components/PasswordForm";
 import { Badge, Card, PageHeader } from "@/components/ui";
@@ -34,6 +35,9 @@ export default async function SettingsPage() {
             {u.mfaEnabled ? <Badge tone="ok">ON</Badge> : isDemo() ? <Badge tone="neutral">demo</Badge> : <Link href="/mfa/setup" className="btn-primary py-2">{t.auth.verify}</Link>}
           </div>
           <PasswordForm />
+        </Card>
+        <Card title={t.settings.appPush} className="lg:col-span-2">
+          <AppSetup vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || null} />
         </Card>
         {u.role === "admin" && (
           <Card title={t.settings.sampleData} className="lg:col-span-2">

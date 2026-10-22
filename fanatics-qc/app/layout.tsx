@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow, Inter, Montserrat } from "next/font/google";
+import { ServiceWorker } from "@/components/ServiceWorker";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getI18n } from "@/lib/i18n/server";
 import "./globals.css";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
   title: { default: "Fanatics QC Lab", template: "%s · Fanatics QC Lab" },
   description: "Fabric decoration-readiness portal: quality protocols, lab evidence and supplier performance.",
   manifest: "/manifest.webmanifest",
+  icons: { icon: "/icon.svg", apple: "/apple-touch-icon.png" },
   robots: { index: false, follow: false },
   appleWebApp: { capable: true, title: "QC Lab", statusBarStyle: "black-translucent" },
 };
@@ -26,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <I18nProvider locale={locale} t={t}>
           {children}
         </I18nProvider>
+        <ServiceWorker />
       </body>
     </html>
   );

@@ -1,0 +1,12 @@
+{
+  "appId": "com.fanatics.qclab",
+  "appName": "QC Lab",
+  "webDir": "www",
+  "server": {
+    "url": "https://fanatics-qc-lab.vercel.app",
+    "cleartext": false,
+    "allowNavigation": ["fanatics-qc-lab.vercel.app", "*.supabase.co"]
+  },
+  "android": { "backgroundColor": "#09203F" },
+  "ios": { "backgroundColor": "#09203F", "contentInset": "always" }
+}

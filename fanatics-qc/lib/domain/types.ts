@@ -163,7 +163,7 @@ export interface Evidence {
   id: string;
   lotId: string;
   resultId: string | null;
-  kind: "photo" | "report" | "spectro" | "other";
+  kind: "photo" | "report" | "spectro" | "other" | "garment_before" | "garment_after" | "capa";
   name: string;
   mime: string;
   size: number;
@@ -234,6 +234,58 @@ export interface RequirementRow {
   max: number | null;
 }
 
+/** Finished, decorated garment washed N cycles and rated before/after (photos as evidence). */
+export interface GarmentTrial {
+  id: string;
+  lotId: string;
+  colorId: string | null;
+  method: DecorationCode;
+  placement: string;
+  washCycles: number;
+  washProcedure: string;
+  /** Grades 1–5 (5 = no change) except shrinkage (%). */
+  appearance: number;
+  cracking: number | null;
+  peeling: number | null;
+  fading: number | null;
+  shrinkagePct: number | null;
+  beforeEvidenceId: string | null;
+  afterEvidenceId: string | null;
+  notes: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export type CapaStatus = "open" | "submitted" | "returned" | "accepted" | "closed";
+
+/** Corrective and preventive action requested from a mill after a rejected / retest lot. */
+export interface Capa {
+  id: string;
+  ref: string;
+  lotId: string;
+  supplierId: string;
+  status: CapaStatus;
+  problem: string;
+  rootCause: string;
+  containment: string;
+  correctiveAction: string;
+  preventiveAction: string;
+  dueDate: string | null;
+  supplierOwner: string;
+  reviewNotes: string;
+  retestLotId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt: string | null;
+  closedAt: string | null;
+}
+
+export interface PushSubscriptionRow {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
+
 export interface LotBundle {
   lot: Lot;
   fabric: Fabric;
@@ -241,4 +293,6 @@ export interface LotBundle {
   results: TestResult[];
   evidence: Evidence[];
   events: LotEvent[];
+  trials: GarmentTrial[];
+  capas: Capa[];
 }

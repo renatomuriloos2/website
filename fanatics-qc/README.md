@@ -37,6 +37,9 @@ With no Supabase variables configured, the app runs in **demo mode**: one-click 
 | **Users & access** | Admin creates staff and supplier accounts; suppliers only see their own company (enforced by Postgres RLS). |
 | **Notifications** | In-app + e-mail (Resend): new submission → Fanatics QC; decision / retest → supplier. |
 | **Security** | Mandatory 2FA (TOTP), password policy, RLS, private storage with signed URLs, hash-chained immutable audit log, CSP/HSTS headers, rate limiting, upload validation. See [`docs/SECURITY.md`](docs/SECURITY.md). |
+| **Finished-garment wash trial** | Decorated garment washed N cycles with **before / after photos**; appearance, cracking, peeling, fading and shrinkage grades. A failure downgrades that method's verdict (fail → not approved, one minor miss → concession). |
+| **CAPA workflow** | Opens automatically when a lot is rejected or sent to retest; the mill fills root cause, containment, corrective and preventive actions (simplified 8D) and submits; Fanatics accepts or returns; linking the retest lot and approving it closes the CAPA automatically. Due dates, overdue tracking, notifications. |
+| **Mobile & push** | Installable app (PWA, Android / iOS / desktop) with offline screen and **web push notifications**; Capacitor wrapper in `mobile/` for store builds. |
 | **Sample data** | Admin → Settings → *Load sample data* (or from the empty dashboard): 4 mills, 16 fabrics, ~60 lots with per-color results, decisions and retests to explore the full potential. Flagged as sample and removable in one click. |
 | **BI & integrations** | Read-only REST API (JSON/CSV) with API keys, `bi` SQL schema + `bi_reader` role for Power BI, read-only **MCP server** for AI agents. |
 
@@ -56,6 +59,7 @@ lib/data/            repository interface + demo (in-memory) and Supabase implem
 lib/actions/         server actions (validated with zod)
 supabase/            schema.sql (tables, RLS, audit, storage, BI views) · seed.sql (protocol) · suppliers.sql · first-admin.sql · tests/
 mcp/                 read-only MCP server
+mobile/              Capacitor wrapper for Android / iOS store builds
 docs/                setup, security, protocol, Power BI, MCP, handoff
 tests/               unit tests (engine, CSV, password policy)
 ```

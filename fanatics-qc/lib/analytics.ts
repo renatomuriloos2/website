@@ -1,6 +1,7 @@
 import { DECORATIONS, TEST_MAP } from "@/lib/domain/catalog";
+import { isOverdue } from "@/lib/domain/capa";
 import { evaluateLotColors, indexRequirements, type LotEvaluation } from "@/lib/domain/engine";
-import type { DecorationCode, Fabric, FiberType, Lot, LotStatus, RequirementRow, Supplier, TestResult } from "@/lib/domain/types";
+import type { Capa, DecorationCode, Fabric, FiberType, GarmentTrial, Lot, LotStatus, RequirementRow, Supplier, TestResult } from "@/lib/domain/types";
 
 export interface Analytics {
   kpi: {
@@ -16,6 +17,9 @@ export interface Analytics {
     avgCycleDays: number | null;
     avgGrade: number | null;
     medianMaxTemp: number | null;
+    capaOpen: number;
+    capaOverdue: number;
+    capaAvgDaysToClose: number | null;
   };
   monthly: { month: string; approved: number; concession: number; rejected: number; retest: number; pipeline: number }[];
   byStatus: { status: LotStatus; count: number }[];
@@ -47,7 +51,7 @@ const days = (a: string, b: string) => (new Date(b).getTime() - new Date(a).getT
 /** Right First Time: approved without concession on the first submission (not a retest). */
 export const isRft = (l: Lot) => l.status === "approved" && !l.isRetest;
 
-export function computeAnalytics(input: { lots: Lot[]; results: TestResult[]; suppliers: Supplier[]; fabrics: Fabric[]; requirements: RequirementRow[] }): Analytics {
+export function computeAnalytics(input: { lots: Lot[]; results: TestResult[]; suppliers: Supplier[]; fabrics: Fabric[]; requirements: RequirementRow[]; trials?: GarmentTrial[]; capas?: Capa[] }): Analytics {
   const { lots, results, suppliers, fabrics } = input;
   const reqs = indexRequirements(input.requirements);
   const fabricById = new Map(fabrics.map((f) => [f.id, f]));
@@ -57,7 +61,7 @@ export function computeAnalytics(input: { lots: Lot[]; results: TestResult[]; su
   const evaluations = new Map<string, LotEvaluation>();
   for (const l of lots) {
     const f = fabricById.get(l.fabricId);
-    if (f) evaluations.set(l.id, evaluateLotColors(f.fiber, l, resultsByLot.get(l.id) ?? [], reqs).overall);
+    if (f) evaluations.set(l.id, evaluateLotColors(f.fiber, l, resultsByLot.get(l.id) ?? [], reqs, (input.trials ?? []).filter((t) => t.lotId === l.id)).overall);
   }
 
   const decidedLots = lots.filter((l) => ["approved", "approved_concession", "rejected", "retest"].includes(l.status));
@@ -79,6 +83,9 @@ export function computeAnalytics(input: { lots: Lot[]; results: TestResult[]; su
     avgCycleDays: avg(cycle),
     avgGrade: avg(grades),
     medianMaxTemp: temps.length ? temps[Math.floor(temps.length / 2)] : null,
+    capaOpen: (input.capas ?? []).filter((c) => c.status !== "closed").length,
+    capaOverdue: (input.capas ?? []).filter((c) => isOverdue(c)).length,
+    capaAvgDaysToClose: avg((input.capas ?? []).filter((c) => c.closedAt).map((c) => days(c.createdAt, c.closedAt!))),
   };
 
   // Monthly (last 9 months)

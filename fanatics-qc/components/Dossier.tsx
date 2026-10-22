@@ -1,7 +1,7 @@
 import { CONDITIONS, DECORATION_MAP, DECORATION_SHORT, FIBER_MAP, PLACEMENTS, TEST_MAP, VERDICTS, ladderKey, loc } from "@/lib/domain/catalog";
 import type { ColorEvaluation, LotEvaluation, MethodOutcome, RequirementIndex } from "@/lib/domain/engine";
-import { evaluateTest, specFor } from "@/lib/domain/engine";
-import type { DecorationCode, Evidence, Fabric, GarmentType, Locale, LotColor, TestResult } from "@/lib/domain/types";
+import { GARMENT_MIN, evaluateGarmentTrial, evaluateTest, specFor } from "@/lib/domain/engine";
+import type { DecorationCode, Evidence, Fabric, GarmentTrial, GarmentType, Locale, LotColor, TestResult } from "@/lib/domain/types";
 import type { Dict } from "@/lib/i18n/dict";
 import { fmtDate } from "@/lib/format";
 import { LadderChart } from "./Charts";
@@ -333,3 +333,66 @@ export function FiberNote({ fabric, locale }: { fabric: Fabric; locale: Locale }
 }
 
 export { GradeChip };
+
+/** Finished-garment wash trial: before/after photos side by side with grades and outcome. */
+export function GarmentTrialCard({ trial, evidence, color, locale, actions }: { trial: GarmentTrial; evidence: Evidence[]; color?: LotColor; locale: Locale; actions?: React.ReactNode }) {
+  const out = evaluateGarmentTrial(trial);
+  const before = evidence.find((e) => e.id === trial.beforeEvidenceId);
+  const after = evidence.find((e) => e.id === trial.afterEvidenceId);
+  const es = locale === "es";
+  const tone = out.status === "pass" ? "ok" : out.status === "concession" ? "amber" : "bad";
+  const label = out.status === "pass" ? (es ? "Cumple" : "Pass") : out.status === "concession" ? (es ? "Concesión" : "Concession") : es ? "No cumple" : "Fail";
+  const grades: [string, number | null, number][] = [
+    [es ? "Apariencia" : "Appearance", trial.appearance, GARMENT_MIN.appearance],
+    [es ? "Agrietamiento" : "Cracking", trial.cracking, GARMENT_MIN.cracking],
+    [es ? "Desprendimiento" : "Peeling", trial.peeling, GARMENT_MIN.peeling],
+    [es ? "Decoloración" : "Fading", trial.fading, GARMENT_MIN.fading],
+  ];
+  const photo = (e: Evidence | undefined, tag: string) => (
+    <figure className="relative overflow-hidden rounded-xl bg-fx-mist ring-1 ring-black/5">
+      {e?.url ? (
+        <a href={e.url} target="_blank" rel="noreferrer">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={e.url} alt={tag} className="h-44 w-full object-cover" />
+        </a>
+      ) : (
+        <div className="flex h-44 items-center justify-center text-xs text-gray-400">—</div>
+      )}
+      <figcaption className="absolute left-2 top-2 rounded-md bg-black/65 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{tag}</figcaption>
+    </figure>
+  );
+  return (
+    <div className="rounded-2xl border border-fx-line bg-white p-4">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2 text-sm font-bold">
+            {DECORATION_MAP[trial.method].name[locale]}
+            {color && <span className="inline-flex items-center gap-1 rounded-full bg-fx-mist px-2 py-0.5 text-[11px] font-semibold"><ColorDot color={color} size={10} />{color.name}</span>}
+          </div>
+          <div className="text-[11px] text-gray-500">{trial.placement} · {trial.washCycles} {es ? "lavados" : "washes"} · {trial.washProcedure}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge tone={tone}>{label}</Badge>
+          {actions}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {photo(before, es ? "Antes" : "Before")}
+        {photo(after, es ? `Después · ${trial.washCycles} lavados` : `After · ${trial.washCycles} washes`)}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+        {grades.map(([k, v, min]) => (
+          <div key={k} className="flex items-center justify-between rounded-lg bg-fx-mist/60 px-2.5 py-1.5 text-[11px]">
+            <span className="text-gray-600">{k}</span>
+            <ReadingChip value={v} pass={v === null ? null : v >= min} />
+          </div>
+        ))}
+        <div className="flex items-center justify-between rounded-lg bg-fx-mist/60 px-2.5 py-1.5 text-[11px]">
+          <span className="text-gray-600">{es ? "Encog." : "Shrink"}</span>
+          <ReadingChip value={trial.shrinkagePct} pass={trial.shrinkagePct === null ? null : Math.abs(trial.shrinkagePct) <= GARMENT_MIN.shrinkagePct} unit="%" />
+        </div>
+      </div>
+      {trial.notes && <p className="mt-2 text-xs text-gray-600">{trial.notes}</p>}
+    </div>
+  );
+}

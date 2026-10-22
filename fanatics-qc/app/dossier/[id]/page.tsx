@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FanaticsMark } from "@/components/Brand";
-import { BaseTable, ColorMatrix, EvidenceStrip, FiberNote, LadderCard, MethodCard, PlacementSheet, ResultBlock, conditionText } from "@/components/Dossier";
+import { BaseTable, ColorMatrix, EvidenceStrip, GarmentTrialCard, FiberNote, LadderCard, MethodCard, PlacementSheet, ResultBlock, conditionText } from "@/components/Dossier";
 import { StatusBadge } from "@/components/StatusBadge";
 import { requireUser } from "@/lib/auth";
 import { getRepo } from "@/lib/data";
@@ -31,14 +31,14 @@ export default async function DossierPage({ params }: { params: { id: string } }
   const repo = getRepo();
   const bundle = await repo.getLotBundle(ctx, params.id).catch(() => null);
   if (!bundle) notFound();
-  const { lot, fabric, supplier, results, evidence } = bundle;
+  const { lot, fabric, supplier, results, evidence, trials, capas } = bundle;
   const reqs = indexRequirements(await repo.listRequirements(ctx));
-  const { overall: ev, perColor } = evaluateLotColors(fabric.fiber, lot, results, reqs);
+  const { overall: ev, perColor } = evaluateLotColors(fabric.fiber, lot, results, reqs, trials);
   const ready = ev.requested.filter((m) => m.verdict === "approved" || m.verdict === "conditional");
   const notReady = ev.requested.filter((m) => m.verdict === "rejected");
   const sorted = [...results].sort((a, b) => a.testedAt.localeCompare(b.testedAt));
   const ladder = sorted.filter((r) => r.testId === "dye_migration").pop();
-  const photos = evidence.filter((e) => e.mime.startsWith("image/"));
+  const photos = evidence.filter((e) => e.mime.startsWith("image/") && e.kind !== "garment_before" && e.kind !== "garment_after");
 
   return (
     <div className="min-h-screen bg-gray-200 py-8 print:bg-white print:py-0">
@@ -165,6 +165,30 @@ export default async function DossierPage({ params }: { params: { id: string } }
         <Section n={4} title={t.lots.baseQualification}>
           <BaseTable evaluation={ev} results={results} locale={locale} t={t} />
         </Section>
+
+        {trials.length > 0 && (
+          <Section n="W" title={locale === "es" ? "Prueba de prenda terminada (antes / después del lavado)" : "Finished-garment wash trial (before / after)"}>
+            <div className="grid gap-3 sm:grid-cols-2 print:grid-cols-2">
+              {trials.map((tr) => (
+                <GarmentTrialCard key={tr.id} trial={tr} evidence={evidence} color={lot.colors.find((c) => c.id === tr.colorId)} locale={locale} />
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {capas.length > 0 && (
+          <Section n="!" title="CAPA">
+            {capas.map((c) => (
+              <div key={c.id} className="mb-3 rounded-xl border border-fx-line p-3 text-xs">
+                <div className="mb-1 font-bold">{c.ref} · {c.status}</div>
+                <p className="text-gray-600">{c.problem}</p>
+                {c.rootCause && <p className="mt-1"><b>{locale === "es" ? "Causa raíz" : "Root cause"}:</b> {c.rootCause}</p>}
+                {c.correctiveAction && <p><b>{locale === "es" ? "Correctiva" : "Corrective"}:</b> {c.correctiveAction}</p>}
+                {c.preventiveAction && <p><b>{locale === "es" ? "Preventiva" : "Preventive"}:</b> {c.preventiveAction}</p>}
+              </div>
+            ))}
+          </Section>
+        )}
 
         <Section n={5} title={t.lots.placements} className="print-break">
           <PlacementSheet garment={lot.garmentType} locale={locale} approved={lot.status === "approved" || lot.status === "approved_concession"} />

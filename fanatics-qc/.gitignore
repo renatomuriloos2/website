@@ -13,3 +13,4 @@ npm-debug.log*
 next-env.d.ts
 mcp/node_modules
 mcp/dist
+mobile/node_modules

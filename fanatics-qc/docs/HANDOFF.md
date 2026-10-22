@@ -33,7 +33,5 @@ owner can stay as a **temporary admin** during the transition and then step out.
 
 1. SSO (Okta/Azure AD) for Fanatics staff.
 2. Lab integrations: import Datacolor/X-Rite spectro files (CXF/QTX) automatically into ΔE readings.
-3. Garment-level testing (finished decorated garments) and wash-trial photos before/after.
-4. Supplier CAPA (corrective action) workflow for rejected lots.
-5. Web push notifications and a native mobile wrapper.
-6. Additional languages if new supplier regions require them (dictionary in `lib/i18n/dict.ts`).
+3. Native push for the store app (Firebase Cloud Messaging / APNs via `@capacitor/push-notifications`).
+4. Additional languages if new supplier regions require them (dictionary in `lib/i18n/dict.ts`).

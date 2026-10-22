@@ -53,12 +53,13 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
         <Stat label={t.dash.lots} value={kpi.total} icon="lots" tone="neutral" hint={`${kpi.pipeline} ${t.dash.pipeline.toLowerCase()}`} />
         <Stat label={t.dash.rft} value={kpi.rftPct === null ? "—" : `${kpi.rftPct}%`} icon="spark" tone="ok" hint={t.dash.rftHint} />
         <Stat label={t.dash.approved} value={kpi.approved} icon="check" tone="ok" hint={`${kpi.approvalPct ?? "—"}% ${t.dash.approvalRate.toLowerCase()}`} />
         <Stat label={t.dash.concession} value={kpi.concession} icon="alert" tone="amber" />
         <Stat label={t.dash.rejected} value={kpi.rejected + kpi.retest} icon="x" tone="bad" hint={`${kpi.retest} ${STATUS_MAP.retest.label[locale].toLowerCase()}`} />
+        <Stat label="CAPA" value={kpi.capaOpen} icon="alert" tone="warn" hint={`${kpi.capaOverdue} ${locale === "es" ? "vencidas" : "overdue"}`} />
         <Stat label={t.dash.cycle} value={kpi.avgCycleDays === null ? "—" : kpi.avgCycleDays} icon="clock" tone="info" hint={`${t.dash.days} · ${t.dash.avgGrade} ${kpi.avgGrade ?? "—"}`} />
       </div>
 

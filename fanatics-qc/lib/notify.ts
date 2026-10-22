@@ -2,6 +2,7 @@ import "server-only";
 import { Resend } from "resend";
 import { APP_URL } from "@/lib/env";
 import type { Repo, NotificationInput } from "@/lib/data/repo";
+import { sendPush } from "@/lib/push";
 
 function emailHtml(n: NotificationInput) {
   const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -18,11 +19,12 @@ function emailHtml(n: NotificationInput) {
   </table></td></tr></table></body></html>`;
 }
 
-/** In-app notification for each recipient + e-mail when Resend is configured. Never throws. */
+/** In-app notification + web push (if VAPID keys are set) + e-mail (if Resend is set). Never throws. */
 export async function notify(repo: Repo, target: "staff" | { supplierId: string }, n: NotificationInput) {
   try {
     const users = await repo.recipients(target);
     await repo.pushNotifications(users.map((u) => u.id), n);
+    await sendPush(repo, users.map((u) => u.id), n);
     const key = process.env.RESEND_API_KEY;
     const from = process.env.RESEND_FROM_EMAIL;
     if (key && from && users.length && repo.mode === "supabase") {

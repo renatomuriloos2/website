@@ -1,5 +1,8 @@
 import type {
   ApiKey,
+  Capa,
+  GarmentTrial,
+  PushSubscriptionRow,
   AppNotification,
   AppUser,
   Assessment,
@@ -106,6 +109,36 @@ export interface NotificationInput {
   href: string;
 }
 
+export interface GarmentTrialInput {
+  colorId: string | null;
+  method: DecorationCode;
+  placement: string;
+  washCycles: number;
+  washProcedure: string;
+  appearance: number;
+  cracking: number | null;
+  peeling: number | null;
+  fading: number | null;
+  shrinkagePct: number | null;
+  notes: string;
+}
+
+export interface CapaFields {
+  rootCause: string;
+  containment: string;
+  correctiveAction: string;
+  preventiveAction: string;
+  supplierOwner: string;
+}
+
+export type CapaAction =
+  | { type: "save"; fields: CapaFields }
+  | { type: "submit"; fields: CapaFields }
+  | { type: "accept"; notes: string }
+  | { type: "return"; notes: string }
+  | { type: "close"; notes: string }
+  | { type: "link_retest"; lotId: string };
+
 export interface Repo {
   readonly mode: "demo" | "supabase";
 
@@ -127,6 +160,22 @@ export interface Repo {
   addResult(ctx: Ctx, lotId: string, input: ResultInput): Promise<TestResult>;
   deleteResult(ctx: Ctx, id: string): Promise<void>;
   addEvidence(ctx: Ctx, lotId: string, kind: Evidence["kind"], resultId: string | null, file: UploadFile): Promise<Evidence>;
+
+  listGarmentTrials(ctx: Ctx): Promise<GarmentTrial[]>;
+  addGarmentTrial(ctx: Ctx, lotId: string, input: GarmentTrialInput, before: UploadFile | null, after: UploadFile | null): Promise<GarmentTrial>;
+  deleteGarmentTrial(ctx: Ctx, id: string): Promise<void>;
+
+  listCapas(ctx: Ctx): Promise<Capa[]>;
+  getCapa(ctx: Ctx, id: string): Promise<Capa | null>;
+  /** Staff only. Returns the existing open CAPA for the lot if there is one. */
+  openCapa(ctx: Ctx, lotId: string, problem: string, dueDate: string): Promise<Capa>;
+  updateCapa(ctx: Ctx, id: string, action: CapaAction): Promise<Capa>;
+
+  savePushSubscription(ctx: Ctx, sub: PushSubscriptionRow, userAgent: string): Promise<void>;
+  removePushSubscription(ctx: Ctx, endpoint: string): Promise<void>;
+  /** Service-level: subscriptions of the given users (for sending web push). */
+  pushSubscriptions(userIds: string[]): Promise<(PushSubscriptionRow & { userId: string })[]>;
+  dropPushSubscription(endpoint: string): Promise<void>;
 
   listRequirements(ctx: Ctx): Promise<RequirementRow[]>;
   saveRequirement(ctx: Ctx, row: RequirementRow): Promise<void>;

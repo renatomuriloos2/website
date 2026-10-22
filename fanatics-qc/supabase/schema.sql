@@ -158,7 +158,7 @@ create table if not exists public.evidence (
   lot_id           uuid not null references public.lots(id) on delete cascade,
   supplier_id      uuid not null references public.suppliers(id),
   result_id        uuid references public.test_results(id) on delete set null,
-  kind             text not null default 'photo' check (kind in ('photo','report','spectro','other')),
+  kind             text not null default 'photo' check (kind in ('photo','report','spectro','other','garment_before','garment_after','capa')),
   name             text not null,
   mime             text not null,
   size_bytes       bigint not null check (size_bytes between 1 and 10485760),
@@ -627,3 +627,144 @@ revoke all on schema public from bi_reader;
 grant usage on schema bi to bi_reader;
 grant select on all tables in schema bi to bi_reader;
 alter default privileges in schema bi grant select on tables to bi_reader;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- Phase 2 — finished-garment wash trials, CAPA workflow, web push
+-- ════════════════════════════════════════════════════════════════════════════
+
+alter table public.evidence drop constraint if exists evidence_kind_check;
+alter table public.evidence add constraint evidence_kind_check
+  check (kind in ('photo','report','spectro','other','garment_before','garment_after','capa'));
+
+-- Finished, decorated garment washed N cycles, rated before/after with photos.
+create table if not exists public.garment_trials (
+  id                 uuid primary key default gen_random_uuid(),
+  lot_id             uuid not null references public.lots(id) on delete cascade,
+  supplier_id        uuid not null references public.suppliers(id),
+  color_id           text,
+  method             text not null references public.decoration_methods(code),
+  placement          text not null default '',
+  wash_cycles        int not null check (wash_cycles between 1 and 200),
+  wash_procedure     text not null default '',
+  appearance         numeric(2,1) not null check (appearance between 1 and 5),
+  cracking           numeric(2,1) check (cracking between 1 and 5),
+  peeling            numeric(2,1) check (peeling between 1 and 5),
+  fading             numeric(2,1) check (fading between 1 and 5),
+  shrinkage_pct      numeric(5,2),
+  before_evidence_id uuid references public.evidence(id) on delete set null,
+  after_evidence_id  uuid references public.evidence(id) on delete set null,
+  notes              text not null default '',
+  created_by         uuid default auth.uid(),
+  created_at         timestamptz not null default now()
+);
+create index if not exists idx_trials_lot on public.garment_trials(lot_id);
+drop trigger if exists trg_trials_supplier on public.garment_trials;
+create trigger trg_trials_supplier before insert on public.garment_trials for each row execute function public.inherit_lot_supplier();
+
+-- Corrective & preventive action (CAPA) per rejected / retest lot.
+create sequence if not exists public.capa_ref_seq start 1;
+create table if not exists public.capas (
+  id                uuid primary key default gen_random_uuid(),
+  ref               text not null unique default ('CAPA-' || to_char(now(), 'YYYY') || '-' || lpad(nextval('public.capa_ref_seq')::text, 4, '0')),
+  lot_id            uuid not null references public.lots(id) on delete cascade,
+  supplier_id       uuid not null references public.suppliers(id),
+  status            text not null default 'open' check (status in ('open','submitted','returned','accepted','closed')),
+  problem           text not null default '',
+  root_cause        text not null default '',
+  containment       text not null default '',
+  corrective_action text not null default '',
+  preventive_action text not null default '',
+  due_date          date,
+  supplier_owner    text not null default '',
+  review_notes      text not null default '',
+  retest_lot_id     uuid references public.lots(id) on delete set null,
+  created_by        uuid default auth.uid(),
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+  submitted_at      timestamptz,
+  closed_at         timestamptz
+);
+create index if not exists idx_capas_supplier on public.capas(supplier_id, status);
+drop trigger if exists trg_capas_supplier on public.capas;
+create trigger trg_capas_supplier before insert on public.capas for each row execute function public.inherit_lot_supplier();
+drop trigger if exists trg_capas_touch on public.capas;
+create trigger trg_capas_touch before update on public.capas for each row execute function public.touch_updated_at();
+
+-- Suppliers may only fill in their part while the CAPA is open/returned, and only submit it.
+create or replace function public.capa_supplier_guard()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if public.is_staff() or auth.uid() is null then return new; end if;
+  if old.status not in ('open','returned') then raise exception 'CAPA is not editable in status %', old.status; end if;
+  if new.status not in (old.status, 'submitted') then raise exception 'suppliers can only submit a CAPA'; end if;
+  if new.problem is distinct from old.problem or new.due_date is distinct from old.due_date
+     or new.review_notes is distinct from old.review_notes or new.retest_lot_id is distinct from old.retest_lot_id
+     or new.lot_id is distinct from old.lot_id or new.supplier_id is distinct from old.supplier_id
+     or new.closed_at is distinct from old.closed_at then
+    raise exception 'field not editable by supplier';
+  end if;
+  return new;
+end $$;
+drop trigger if exists trg_capa_guard on public.capas;
+create trigger trg_capa_guard before update on public.capas for each row execute function public.capa_supplier_guard();
+
+-- Web push subscriptions (one row per device/browser).
+create table if not exists public.push_subscriptions (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  endpoint   text not null unique check (endpoint like 'https://%'),
+  p256dh     text not null,
+  auth       text not null,
+  user_agent text not null default '',
+  created_at timestamptz not null default now()
+);
+
+alter table public.garment_trials enable row level security;
+alter table public.capas enable row level security;
+alter table public.push_subscriptions enable row level security;
+
+drop policy if exists p_trial_read on public.garment_trials;
+create policy p_trial_read on public.garment_trials for select to authenticated using (public.can_see_supplier(supplier_id));
+drop policy if exists p_trial_insert on public.garment_trials;
+create policy p_trial_insert on public.garment_trials for insert to authenticated with check (
+  public.is_staff() or exists (
+    select 1 from public.lots l where l.id = lot_id and l.supplier_id = public.my_supplier_id()
+      and l.status in ('draft','submitted','in_review','retest','on_hold')));
+drop policy if exists p_trial_delete on public.garment_trials;
+create policy p_trial_delete on public.garment_trials for delete to authenticated using (
+  public.is_staff() or exists (
+    select 1 from public.lots l where l.id = lot_id and l.supplier_id = public.my_supplier_id()
+      and l.status in ('draft','submitted','in_review','retest','on_hold')));
+
+drop policy if exists p_capa_read on public.capas;
+create policy p_capa_read on public.capas for select to authenticated using (public.can_see_supplier(supplier_id));
+drop policy if exists p_capa_insert on public.capas;
+create policy p_capa_insert on public.capas for insert to authenticated with check (public.is_staff());
+drop policy if exists p_capa_update on public.capas;
+create policy p_capa_update on public.capas for update to authenticated
+  using (public.can_see_supplier(supplier_id)) with check (public.can_see_supplier(supplier_id));
+drop policy if exists p_capa_delete on public.capas;
+create policy p_capa_delete on public.capas for delete to authenticated using (public.is_admin());
+
+drop policy if exists p_push_own on public.push_subscriptions;
+create policy p_push_own on public.push_subscriptions for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+do $$
+declare t text;
+begin
+  foreach t in array array['garment_trials','capas'] loop
+    execute format('drop trigger if exists trg_audit_%1$s on public.%1$s', t);
+    execute format('create trigger trg_audit_%1$s after insert or update or delete on public.%1$s for each row execute function public.audit_row()', t);
+  end loop;
+end $$;
+
+revoke all on public.garment_trials, public.capas, public.push_subscriptions from anon;
+
+create or replace view bi.capas as
+  select c.ref, c.status, c.due_date, c.created_at, c.submitted_at, c.closed_at,
+         l.ref as lot_ref, s.code as supplier_code, s.name as supplier_name,
+         case when c.closed_at is not null then round(extract(epoch from (c.closed_at - c.created_at)) / 86400.0, 1) end as days_to_close,
+         (c.status in ('open','returned') and c.due_date < current_date) as is_overdue
+  from public.capas c join public.lots l on l.id = c.lot_id join public.suppliers s on s.id = c.supplier_id;
+grant select on bi.capas to bi_reader;

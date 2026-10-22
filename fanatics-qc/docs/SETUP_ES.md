@@ -118,3 +118,11 @@ Gabriel – técnico Fanatics, usuarios de los mills). Todos los resultados son 
 - [ ] Logos y datos de los mills revisados (campos "TBC" completados).
 - [ ] Respaldos: Supabase hace backup diario; en plan Pro activa *Point-in-Time Recovery*.
 - [ ] Contraseña de `bi_reader` definida si Power BI se conecta directo a Postgres.
+
+## 8. Notificaciones push (opcional, 3 min)
+
+1. En cualquier computadora con Node: `npx web-push generate-vapid-keys` (o pídele a tu Claude que las genere).
+2. Vercel → Settings → Environment Variables: `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (llave pública),
+   `VAPID_PRIVATE_KEY` (llave privada, sensible), `VAPID_SUBJECT` = `mailto:tu@correo` → Redeploy.
+3. Cada usuario: **Settings → App móvil y notificaciones push → Activar en este dispositivo**.
+   En iPhone, primero instalar la app (Compartir → Agregar a inicio).

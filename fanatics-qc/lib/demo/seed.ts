@@ -8,6 +8,8 @@ import type {
   AppNotification,
   AppUser,
   AuditEntry,
+  Capa,
+  GarmentTrial,
   DecorationCode,
   Evidence,
   Fabric,
@@ -20,7 +22,7 @@ import type {
   Supplier,
   TestResult,
 } from "@/lib/domain/types";
-import { specimenSvg, swatchSvg } from "./art";
+import { garmentSvg, specimenSvg, swatchSvg } from "./art";
 
 function mulberry32(seed: number) {
   return () => {
@@ -43,6 +45,9 @@ export interface DemoDb {
   notifications: AppNotification[];
   audit: AuditEntry[];
   requirements: { fiber: FiberType; testId: string; key: string; min: number | null; max: number | null }[];
+  trials: GarmentTrial[];
+  capas: Capa[];
+  pushSubs: { userId: string; endpoint: string; p256dh: string; auth: string }[];
   apiKeys: { id: string; name: string; prefix: string; hash: string; createdAt: string; lastUsedAt: string | null; revokedAt: string | null }[];
   files: Map<string, string>;
 }
@@ -367,6 +372,83 @@ export function buildDemoDb(): DemoDb {
     lots.push(makeLot(fabric, addDays(now, -(0.15 + k * 1.4)), null));
   }
 
+  // Finished-garment wash trials (before/after photos) for decided lots with a heat-applied / printed method.
+  const trials: GarmentTrial[] = [];
+  const TRIAL_METHODS: DecorationCode[] = ["screen_plastisol", "heat_transfer", "htv", "tackle_twill", "dtf", "dtg", "heat_label", "silicone_3d", "foil_reflective", "screen_silicone", "sublimation", "spot_sublimation"];
+  lots.forEach((l, i) => {
+    const method = l.methods.find((m) => TRIAL_METHODS.includes(m));
+    if (!method || !l.decidedAt || rnd() < 0.35) return;
+    const color = l.colors[0];
+    const base = l.status === "approved" ? 4.5 : l.status === "approved_concession" ? 4 : 3;
+    const g = (d = 0) => half(base + d + (rnd() - 0.5) * 0.6);
+    const appearance = l.status === "approved_concession" ? 3.5 : g();
+    const cycles = rnd() < 0.5 ? 25 : 10;
+    const supplierUser = users.find((u) => u.supplierId === l.supplierId)!;
+    const at = l.decidedAt;
+    const label = `${l.ref} · ${color.name} · ${cycles} washes`;
+    const beforeId = `evd_tb_${i}`;
+    const afterId = `evd_ta_${i}`;
+    const before = garmentSvg(color.hex, label, false, 5);
+    const after = garmentSvg(color.hex, label, true, appearance);
+    evidence.push({ id: beforeId, lotId: l.id, resultId: null, kind: "garment_before", name: `garment_before_${cycles}w.svg`, mime: "image/svg+xml", size: before.length, sha256: "demo", url: before, uploadedBy: supplierUser.fullName, createdAt: at });
+    evidence.push({ id: afterId, lotId: l.id, resultId: null, kind: "garment_after", name: `garment_after_${cycles}w.svg`, mime: "image/svg+xml", size: after.length, sha256: "demo", url: after, uploadedBy: supplierUser.fullName, createdAt: at });
+    trials.push({
+      id: `gt_${i}`,
+      lotId: l.id,
+      colorId: color.id,
+      method,
+      placement: ["FN", "BN", "FC", "NB"][i % 4],
+      washCycles: cycles,
+      washProcedure: "AATCC 135 (1-IV-A-i) home laundering, inside out, 41 °C, tumble dry normal",
+      appearance,
+      cracking: g(0.5),
+      peeling: g(0.5),
+      fading: g(),
+      shrinkagePct: -Math.round((1.5 + rnd() * 2.5) * 10) / 10,
+      beforeEvidenceId: beforeId,
+      afterEvidenceId: afterId,
+      notes: "",
+      createdBy: supplierUser.id,
+      createdAt: at,
+    });
+  });
+
+  // CAPAs for rejected / retest lots, in every workflow state.
+  const capas: Capa[] = [];
+  let capaSeq = 1;
+  lots
+    .filter((l) => l.status === "rejected" || l.status === "retest")
+    .forEach((l) => {
+      const child = lots.find((x) => x.parentLotId === l.id);
+      const opened = l.decidedAt ?? l.updatedAt;
+      const due = new Date(new Date(opened).getTime() + 14 * 86400000).toISOString().slice(0, 10);
+      const failing = l.status === "retest" ? "FX-DM-01 heat ladder, AATCC 61-2A staining" : "FX-DM-01 heat ladder below low-cure temperature";
+      const status: Capa["status"] = child ? (child.status === "approved" || child.status === "approved_concession" ? "closed" : "accepted") : (["open", "submitted", "returned"] as const)[capaSeq % 3];
+      const filled = status !== "open";
+      const supplierUser = users.find((u) => u.supplierId === l.supplierId)!;
+      capas.push({
+        id: `capa_${capaSeq}`,
+        ref: `CAPA-${new Date(opened).getFullYear()}-${String(capaSeq).padStart(4, "0")}`,
+        lotId: l.id,
+        supplierId: l.supplierId,
+        status,
+        problem: `Lot ${l.ref} was ${l.status === "retest" ? "sent to retest" : "rejected"}. Failing tests / methods: ${failing}.`,
+        rootCause: filled ? "Insufficient heat-setting temperature at stenter (185 °C vs 200 °C spec) left unfixed disperse dye on the surface; reduction clearing skipped on dark shades." : "",
+        containment: filled ? "Remaining rolls of the dye lot quarantined; customer PO on hold until retest." : "",
+        correctiveAction: filled ? "Re-run reduction clearing and heat-set at 200 °C for 30 s on the affected dye lot; retest heat ladder before shipment." : "",
+        preventiveAction: filled ? "Added stenter temperature log to the lot release checklist; reduction clearing mandatory for shades darker than L* 40." : "",
+        dueDate: due,
+        supplierOwner: filled ? supplierUser.fullName : "",
+        reviewNotes: status === "returned" ? "Root cause not supported by data — attach stenter temperature records." : status === "accepted" || status === "closed" ? "Root cause and actions accepted. Verify with retest lot." : "",
+        retestLotId: child?.id ?? null,
+        createdAt: opened,
+        updatedAt: child?.decidedAt ?? opened,
+        submittedAt: filled ? new Date(new Date(opened).getTime() + 3 * 86400000).toISOString() : null,
+        closedAt: status === "closed" ? child?.decidedAt ?? null : null,
+      });
+      capaSeq++;
+    });
+
   // Notifications for the admin
   const notifications: AppNotification[] = lots
     .slice(-8)
@@ -405,6 +487,9 @@ export function buildDemoDb(): DemoDb {
     notifications,
     audit,
     requirements: [],
+    trials,
+    capas,
+    pushSubs: [],
     apiKeys: [],
     files,
   };

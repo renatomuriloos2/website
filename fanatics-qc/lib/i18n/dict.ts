@@ -306,6 +306,7 @@ export const en = {
     copyNow: "Copy this key now — it will not be shown again:",
     endpoints: "Endpoints",
     sampleData: "Sample data",
+    appPush: "Mobile app & push notifications",
   },
 };
 
@@ -616,6 +617,7 @@ export const es: Dict = {
     copyNow: "Copia esta llave ahora — no se volverá a mostrar:",
     endpoints: "Endpoints",
     sampleData: "Datos de ejemplo",
+    appPush: "App móvil y notificaciones push",
   },
 };
 

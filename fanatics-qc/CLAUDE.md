@@ -28,7 +28,7 @@ npm install
 npm run dev          # http://localhost:3000 (demo mode if Supabase env vars are missing)
 npm run typecheck
 npm run lint
-npm test             # node:test via tsx — engine, CSV, password policy
+npm test             # node:test via tsx — engine, garment trials, CAPA, CSV, password policy
 npm run build
 npx tsx scripts/generate-seed.ts   # REQUIRED after editing lib/domain/catalog.ts → rewrites supabase/seed.sql
 ```
@@ -78,6 +78,18 @@ docs/                SETUP(_ES), SECURITY, PROTOCOLS, POWER_BI, MCP, HANDOFF
   `evaluateLotColors` evaluates each color and the **lot takes the worst color**. Use it (not `evaluateLot`) for lots.
 - Minimums per fiber come from `requirements` (DB) overriding catalog defaults (`specFor`).
 - Staff (admin/reviewer) decide; suppliers only submit. Overrides per method are allowed for staff and audited.
+
+## Phase 2 features
+
+- **Garment wash trials** (`garment_trials`, `GarmentTrial`): before/after photos are evidence rows
+  (`kind = garment_before | garment_after`). `evaluateGarmentTrial` + `applyTrials` inside
+  `evaluateLotColors(…, trials)` downgrade the method verdict. Always pass the lot's trials.
+- **CAPA** (`capas`, `lib/domain/capa.ts`): pure state machine `capaTransition` used by both repos.
+  Automation lives in `lib/capa-flow.ts` (server-only, NOT a "use server" file): open on rejected/retest,
+  link retest lot, close when the retest is approved. DB trigger `capa_supplier_guard` limits what suppliers can change.
+- **Push**: `public/sw.js` (push + offline page), `lib/push.ts` (VAPID via `web-push`), subscriptions in
+  `push_subscriptions` (RLS: own rows). `notify()` sends in-app + push + e-mail.
+- **Mobile**: PWA manifest + icons in `public/`; Capacitor wrapper in `mobile/`.
 
 ## Security rules (non-negotiable)
 

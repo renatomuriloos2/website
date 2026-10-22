@@ -16,6 +16,7 @@ import type {
   ConditionCode,
   DecorationCode,
   FiberType,
+  GarmentTrial,
   LotColor,
   LotStatus,
   MethodOverride,
@@ -400,16 +401,69 @@ function mergeEvaluations(list: LotEvaluation[]): LotEvaluation {
   };
 }
 
+// ─── Finished-garment wash trials ───────────────────────────────────────────
+
+export const GARMENT_MIN = { appearance: 4, cracking: 4, peeling: 4, fading: 3.5, shrinkagePct: 5 } as const;
+
+export interface TrialOutcome {
+  status: "pass" | "concession" | "fail";
+  failures: string[];
+}
+
+/** Pass ≥ minimum on every grade; one grade under → concession; anything ≤ 2.5 or 2+ misses → fail. */
+export function evaluateGarmentTrial(t: Pick<GarmentTrial, "appearance" | "cracking" | "peeling" | "fading" | "shrinkagePct">): TrialOutcome {
+  const failures: string[] = [];
+  const grades: [string, number | null, number][] = [
+    ["appearance", t.appearance, GARMENT_MIN.appearance],
+    ["cracking", t.cracking, GARMENT_MIN.cracking],
+    ["peeling", t.peeling, GARMENT_MIN.peeling],
+    ["fading", t.fading, GARMENT_MIN.fading],
+  ];
+  let severe = false;
+  for (const [k, v, min] of grades) {
+    if (v === null || v === undefined) continue;
+    if (v < min) failures.push(k);
+    if (v <= 2.5) severe = true;
+  }
+  if (t.shrinkagePct !== null && t.shrinkagePct !== undefined && Math.abs(t.shrinkagePct) > GARMENT_MIN.shrinkagePct) failures.push("shrinkage");
+  if (!failures.length) return { status: "pass", failures };
+  return { status: severe || failures.length > 1 ? "fail" : "concession", failures };
+}
+
+/** A failed garment trial downgrades the method it was decorated with (unless staff overrode it). */
+function applyTrials(evaluation: LotEvaluation, trials: GarmentTrial[], overrides: Partial<Record<DecorationCode, MethodOverride>>): LotEvaluation {
+  if (!trials.length) return evaluation;
+  const adjust = (m: MethodOutcome): MethodOutcome => {
+    if (m.overridden || m.verdict === "not_applicable") return m;
+    const outs = trials.filter((t) => t.method === m.code).map(evaluateGarmentTrial);
+    if (!outs.length) return m;
+    if (outs.some((o) => o.status === "fail")) return { ...m, verdict: "rejected", failedTests: Array.from(new Set([...m.failedTests, "garment_trial"])) };
+    if (outs.some((o) => o.status === "concession") && m.verdict === "approved") return { ...m, verdict: "conditional", conditions: Array.from(new Set([...m.conditions, "concession" as ConditionCode])) };
+    return m;
+  };
+  const requested = evaluation.requested.map(adjust);
+  let suggested = evaluation.suggested;
+  if (requested.some((m) => m.verdict === "rejected") && (suggested === "approved" || suggested === "approved_concession")) suggested = "retest";
+  else if (requested.some((m) => m.verdict === "conditional") && suggested === "approved") suggested = "approved_concession";
+  void overrides;
+  return { ...evaluation, requested, methods: evaluation.methods.map(adjust), suggested };
+}
+
 export function evaluateLotColors(
   fiber: FiberType,
   lot: { methods: DecorationCode[]; colors: LotColor[]; overrides: Partial<Record<DecorationCode, MethodOverride>> },
   results: TestResult[],
-  reqs?: RequirementIndex
+  reqs?: RequirementIndex,
+  trials: GarmentTrial[] = []
 ): { overall: LotEvaluation; perColor: ColorEvaluation[] } {
-  if (!lot.colors.length) return { overall: evaluateLot(fiber, lot.methods, results, reqs, lot.overrides), perColor: [] };
+  if (!lot.colors.length) return { overall: applyTrials(evaluateLot(fiber, lot.methods, results, reqs, lot.overrides), trials, lot.overrides), perColor: [] };
   const perColor = lot.colors.map((color) => ({
     color,
-    evaluation: evaluateLot(fiber, lot.methods, results.filter((r) => r.colorId === color.id || r.colorId === null), reqs, lot.overrides),
+    evaluation: applyTrials(
+      evaluateLot(fiber, lot.methods, results.filter((r) => r.colorId === color.id || r.colorId === null), reqs, lot.overrides),
+      trials.filter((t) => t.colorId === color.id || t.colorId === null),
+      lot.overrides
+    ),
   }));
   return { overall: mergeEvaluations(perColor.map((c) => c.evaluation)), perColor };
 }

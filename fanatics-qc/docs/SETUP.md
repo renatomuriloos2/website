@@ -116,3 +116,11 @@ Fanatics technician, mill users). All results are **synthetic**.
 - [ ] Mill logos and data checked ("TBC" fields filled).
 - [ ] Backups: Supabase runs daily backups; on Pro enable *Point-in-Time Recovery*.
 - [ ] `bi_reader` password set if Power BI connects directly to Postgres.
+
+## 8. Push notifications (optional, 3 min)
+
+1. On any computer with Node: `npx web-push generate-vapid-keys` (or ask your Claude to generate them).
+2. Vercel → Settings → Environment Variables: `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (public key),
+   `VAPID_PRIVATE_KEY` (private key, sensitive), `VAPID_SUBJECT` = `mailto:your@email` → Redeploy.
+3. Each user: **Settings → Mobile app & push notifications → Enable on this device**.
+   On iPhone, first install the app (Share → Add to Home Screen).

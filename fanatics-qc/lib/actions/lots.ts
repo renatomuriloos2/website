@@ -10,6 +10,7 @@ import { deltaEToGrade } from "@/lib/domain/engine";
 import type { ConditionCode, DecorationCode, LotStatus, MethodOverride, Readings, Verdict } from "@/lib/domain/types";
 import { notify } from "@/lib/notify";
 import { readUpload } from "@/lib/upload";
+import { closeCapaVerifiedBy, ensureCapaForLot, linkRetestToCapa } from "@/lib/capa-flow";
 import { errorMessage, isRedirectError, type FormState } from "./state";
 
 const STATUSES = ["draft", "submitted", "in_review", "retest", "on_hold", "approved", "approved_concession", "rejected"] as const;
@@ -55,6 +56,7 @@ export async function createLotAction(_prev: FormState, fd: FormData): Promise<F
       if (fabric) colors.push({ id: "c1", name: fabric.color || "Main", hex: fabric.colorHex, code: "" });
     }
     const lot = await repo.createLot(ctx, { ...input, colors, methods: input.methods as DecorationCode[] });
+    await linkRetestToCapa(ctx, lot);
     const supplier = await repo.getSupplier(ctx, lot.supplierId);
     await notify(repo, "staff", {
       title: `New lot submitted · ${lot.ref}`,
@@ -152,10 +154,12 @@ export async function moveLotAction(lotId: string, status: string) {
   const s = z.enum(STATUSES).parse(status) as LotStatus;
   const repo = getRepo();
   const lot = await repo.setLotStatus(ctx, lotId, s, "");
+  await ensureCapaForLot(ctx, lot);
   if (["retest", "on_hold"].includes(s)) {
     await notify(repo, { supplierId: lot.supplierId }, { title: `Lot ${lot.ref} · ${s === "retest" ? "retest required" : "on hold"}`, body: `Fanatics QC moved your lot ${lot.lotNumber} to "${s.replace("_", " ")}".`, href: `/lots/${lot.id}` });
   }
   revalidatePath("/board");
+  revalidatePath("/capa");
   revalidatePath(`/lots/${lotId}`);
 }
 
@@ -178,6 +182,8 @@ export async function decideLotAction(lotId: string, _prev: FormState, fd: FormD
       };
     }
     const lot = await repo.decideLot(ctx, lotId, { status, notes, overrides });
+    await ensureCapaForLot(ctx, lot);
+    await closeCapaVerifiedBy(ctx, lot);
     await notify(repo, { supplierId: lot.supplierId }, {
       title: `Decision on ${lot.ref}: ${status.replace("_", " ")}`,
       body: notes || `Fanatics QC recorded a decision for lot ${lot.lotNumber}.`,

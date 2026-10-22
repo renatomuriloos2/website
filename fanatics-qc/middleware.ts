@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-const PUBLIC = ["/login", "/auth", "/api/v1", "/api/health", "/manifest.webmanifest", "/icon"];
+const PUBLIC = ["/login", "/auth", "/api/v1", "/api/health", "/manifest.webmanifest", "/icon", "/sw.js", "/offline.html"];
 const MFA_PATHS = ["/mfa"];
 
 function isDemo(request: NextRequest) {
